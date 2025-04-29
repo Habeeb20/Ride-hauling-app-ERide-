@@ -396,10 +396,9 @@ authRouter.get("/dashboard", verifyToken, async(req, res) => {
   
   
   
-    
       return res.status(200).json({
         status: true,
-        data: profile,
+         profile,
       });
     } catch (error) {
    
@@ -530,6 +529,96 @@ authRouter.get("/users", async(req, res) =>{
         });
       }
 })
+
+
+authRouter.get("/drivers", async (req, res) => {
+  try {
+    const { state, lga } = req.query; 
+
+ 
+    const profileQuery = {
+      ...(state && { 'location.state': state }),
+      ...(lga && { 'location.lga': lga }),
+    };
+
+    // Fetch profiles with populated userId, filtering for role: "driver"
+    const profiles = await Profile.find(profileQuery)
+      .populate({
+        path: "userId",
+        match: { role: "driver", isBlacklisted: { $ne: true } }, // Only drivers, not blacklisted
+        select: "firstName lastName email role verificationStatus uniqueNumber",
+      })
+      .select("userEmail profilePicture carPicture carDetails gender location phoneNumber comments clicks available rating rideCount slug")
+      .lean();
+
+    // Filter out profiles where userId didn't match (i.e., not a driver or blacklisted)
+    const filteredProfiles = profiles.filter((profile) => profile.userId);
+
+    // Enrich profiles with additional stats (comments, clicks, rides)
+    const driversWithStats = await Promise.all(
+      filteredProfiles.map(async (profile) => {
+        const userId = profile.userId?._id;
+        const slug = profile.slug;
+
+        // Fetch rides for the driver
+        const rides = await Ride.find({ driverId: userId })
+          .select("status calculatedPrice")
+          .lean();
+
+        // Calculate completed and rejected (canceled) rides
+        const completedRideCount = rides.filter(
+          (ride) => ride.status === "completed"
+        ).length;
+        const rejectedRideCount = rides.filter(
+          (ride) => ride.status === "cancelled" // Fixed the typo "cancalled" to "cancelled"
+        ).length;
+
+        // Calculate financial stats
+        const totalIncome = rides
+          .filter((ride) => ride.status === "completed")
+          .reduce((sum, ride) => sum + (ride.calculatedPrice || 0), 0);
+        const platFormFee = totalIncome * 0.1;
+        const incomeAfterFee = totalIncome - platFormFee;
+
+        // Fetch clicks (adjust based on your actual Click model/schema)
+        let clickCount = profile.clicks || 0; // Use clicks field from Profile schema
+        /* If clicks are stored in a separate collection, uncomment and adjust:
+        try {
+          const clicksResponse = await Click.find({ slug }).lean();
+          clickCount = clicksResponse.length || 0;
+        } catch (clickError) {
+          console.error(`Error fetching clicks for slug ${slug}:`, clickError.stack);
+        }
+        */
+
+        return {
+          ...profile,
+          commentCount: profile.comments ? profile.comments.length : 0,
+          clickCount, // Number of clicks
+          completedRideCount, // Number of completed rides
+          rejectedRideCount, // Number of rejected (canceled) rides
+          totalIncome, // Total income from completed rides
+          platFormFee, // Platform fee (10% of total income)
+          incomeAfterFee, // Income after deducting platform fee
+        };
+      })
+    );
+
+    // Send response
+    res.status(200).json({
+      status: true,
+      message: driversWithStats.length > 0 ? "Drivers retrieved successfully" : "No drivers found",
+      data: driversWithStats,
+    });
+  } catch (error) {
+    console.error("Error fetching drivers:", error.stack);
+    res.status(500).json({
+      status: false,
+      message: process.env.NODE_ENV === "production" ? "Internal server error" : error.message,
+    });
+  }
+});
+
 
 
 

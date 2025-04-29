@@ -10,6 +10,8 @@ export const theme = {
 
       customGreen: "#22CE4DFF",
       altGreen: "#0D842AFF",
+      GreenColor: '#0F4634FF',
+     
       customGray: "#1C2526",
       activeWhite: "#fFF",
       altColor:"#2F4F4F"

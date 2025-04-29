@@ -37,7 +37,7 @@ const Login = () => {
           style: { background: "#4CAF50", color: "white" },
         });
 
-        navigate(role === "driver" ? "/driver-dashboard" : "/userdashboard");
+        navigate(role === "driver" ? "/driver-dashboard" : "/clientdashboard");
       }
     } catch (err) {
       console.log("Login Error:", {

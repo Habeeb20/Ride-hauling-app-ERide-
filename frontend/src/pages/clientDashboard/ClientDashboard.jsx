@@ -1,0 +1,259 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'sonner';
+import FiltersContent from './FiltersContent';
+import CarsContent from './CarsContent';
+import MapContent from './MapsContent';
+import StatisticsContent from './StatisticsContent';
+import { FaBars, FaChartBar, FaFilter, FaCar, FaMapMarkedAlt } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { FaUser } from 'react-icons/fa';
+import Ride from './Ride';
+    const Navbar = ({ toggleTheme, isDarkTheme, profile }) => (
+        <nav className={`fixed top-0 left-0 w-full z-50 shadow p-4 flex justify-between items-center ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
+          <div className="flex items-center space-x-4">
+            <h1 className={`text-xl font-bold ${isDarkTheme ? 'text-white' : 'text-green-600'}`}>ERide</h1>
+            <div className="relative hidden sm:block">
+              {/* Search bar placeholder */}
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={toggleTheme}
+              className={`px-3 py-1 rounded-full text-sm ${isDarkTheme ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+            >
+              {isDarkTheme ? 'Light Theme' : 'Dark Theme'}
+            </button>
+            <div className="flex items-center space-x-2">
+              <img
+                src={profile.profilePicture || 'https://via.placeholder.com/40'}
+                alt="Profile"
+                className="w-8 h-8 rounded-full"
+              />
+              <span className="text-sm font-medium">{profile.userId?.firstName || 'User'}</span>
+            </div>
+          </div>
+        </nav>
+      );
+
+const ClientDashboard = () => {
+  const [activeTab, setActiveTab] = useState('Dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const [profile, setProfile] = useState({});
+  const [clicks, setClicks] = useState(0);
+  const [bookings, setBookings] = useState([]);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const profileResponse = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/auth/dashboard`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const profileData = profileResponse.data?.profile || {};
+        setProfile(profileData);
+        console.log(profileData,"data!!!")
+
+        if (profileData.slug) {
+          const clicksResponse = await axios.get(
+            `${import.meta.env.VITE_BACKEND_URL}/api/profile/get-clicks/${profileData.slug}`
+          );
+          setClicks(clicksResponse.data.clicks || 0);
+        }
+
+        const bookingsResponse = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/ride/history`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setBookings(bookingsResponse.data.history || []);
+
+        toast.success('You are welcome back', {
+          style: { background: '#4CAF50', color: 'white' },
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast.error('An error occurred while fetching dashboard data', {
+          style: { background: '#F44', color: 'white' },
+        });
+        if (error.response?.status === 401 || error.response?.status === 404) {
+          localStorage.removeItem('token');
+          navigate('/login');
+        }
+      }
+    };
+
+    fetchData();
+  }, [navigate]);
+
+  const toggleTheme = () => {
+    setIsDarkTheme(!isDarkTheme);
+  };
+
+  const renderMainContent = () => {
+    return (
+      <div className={`flex-1 p-6 lg:p-8 ${isDarkTheme ? 'bg-gray-800' : 'bg-gray-100'}`}>
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center">
+            <button
+              className={`lg:hidden mr-4 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            >
+              <FaBars size={24} />
+            </button>
+            <h2 className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>
+              {activeTab}
+            </h2>
+          </div>
+        </div>
+
+        {activeTab === 'Filters' && <FiltersContent isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Cars' && <CarsContent isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Map' && <MapContent isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Dashboard' && <StatisticsContent isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Book' && <Ride isDarkTheme={isDarkTheme} />}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <Navbar toggleTheme={toggleTheme} isDarkTheme={isDarkTheme} profile={profile} />
+      <div className={`flex min-h-screen font-sans ${isDarkTheme ? 'bg-gray-100' : 'bg-gray-200'}`}>
+        <div
+          className={`fixed inset-y-0 left-0 w-64 bg-GreenColor shadow-lg transform ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } lg:translate-x-0 transition-transform duration-300 ease-in-out z-50 lg:static lg:w-1/5 p-6 flex flex-col justify-between ${
+    isDarkTheme ? 'bg-GreenColor text-white' : 'bg-customGreen text-gray-800'}`}
+        >
+          <div>
+            <div className="flex items-center mb-8">
+              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-900 rounded-md mr-2"></div>
+              <h1 className="text-xl font-bold text-gray-800">ERide</h1>
+            </div>
+            <nav>
+      <ul className="space-y-4">
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('Dashboard');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'Dashboard'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaChartBar className={`${isDarkTheme ? 'text-gray-300' : 'text-white'} mr-3`} /> Dashboard
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('Book');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'Dashboard'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Book a ride
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('Filters');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'Filters'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaFilter className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Filters
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('Cars');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'Cars'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Drivers
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('Map');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'Map'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaMapMarkedAlt className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Map
+          </button>
+        </li>
+        <li>
+          <Link
+            to="/login"
+            className={`flex items-center ${isDarkTheme ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-gray-800'}`}
+          >
+            <FaUser className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-500'} mr-3`} /> Logout
+          </Link>
+        </li>
+      </ul>
+    </nav>
+          </div>
+          <div className="flex items-center">
+            <img
+              src={profile?.profilePicture || 'https://randomuser.me/api/portraits/women/44.jpg'}
+              alt="User"
+              className="w-10 h-10 rounded-full mr-3"
+            />
+            <div>
+              <p className={`${isDarkTheme ? 'text-green-400' : 'text-green-800'}`}>{profile.userId?.email || 'user@example.com'}</p>
+              <p className={`${isDarkTheme ? 'text-white' : 'text-gray-800'} font-semibold`}>
+                {profile.userId?.firstName || 'User'} {profile.userId?.lastName || ''}
+              </p>
+              <Link to="#" className={`${isDarkTheme ? 'text-gray-400 hover:underline' : 'text-gray-600 text-sm hover:underline'}`}>
+                Visit site
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {renderMainContent()}
+      </div>
+    </>
+  );
+};
+
+export default ClientDashboard;

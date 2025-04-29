@@ -11,6 +11,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import authRouter from "./routes/authRoutes/authRoute.js";
 import profileRoute from "./routes/authRoutes/profileRoute.js";
+import rideRoute from "./routes/rideRoutes/rideRoute.js";
 
 dotenv.config();
 connectDb();
@@ -57,6 +58,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRouter )
 app.use("/api/profile", profileRoute)
+app.use("/api/ride", rideRoute)
   
 
 
