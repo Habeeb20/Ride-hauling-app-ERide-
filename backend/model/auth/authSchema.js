@@ -1,7 +1,13 @@
 import mongoose, { Types } from "mongoose";
 import slugify from "slugify";
-
+import { v4 as uuidv4 } from 'uuid';
 const authSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: true,
+    unique: true,
+    default: uuidv4, // Automatically generate a unique userId
+  },
  
   profileId:{
     type:mongoose.Schema.Types.ObjectId,

@@ -9,7 +9,7 @@ import dotenv from "dotenv"
 import Ride from "../../model/ride/rideSchema.js"
 import express from "express"
 import { verifyToken } from "../../middleware/verifyToken.js"
-
+import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config()
 
@@ -150,6 +150,7 @@ authRouter.post("/register", async(req, res) => {
           verificationToken,
           verificationTokenExpiresAt,
           uniqueNumber,
+          userId: uuidv4(),
         });
     
         await newUser.save();
