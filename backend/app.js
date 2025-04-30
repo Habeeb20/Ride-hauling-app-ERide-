@@ -51,8 +51,8 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRouter);
-app.use("api/delivery", deliveryRoute)
-app.use("/api/ride", rideRoute(io)); 
+app.use("/api/delivery", deliveryRoute)
+app.use("/api/rides", rideRoute(io)); 
 
 
 app.use((err, req, res, next) => {

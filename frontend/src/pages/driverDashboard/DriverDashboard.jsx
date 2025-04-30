@@ -81,7 +81,7 @@ const DriverDashboard = () => {
         }
 
         const bookingsResponse = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/ride/history`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/rides/history`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

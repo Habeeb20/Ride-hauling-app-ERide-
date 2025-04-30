@@ -102,9 +102,10 @@ function Ride() {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.data.status) {
-          setData(response.data.data);
-          setPassengerId(response.data.data?._id);
-          setPassenger(response.data.data);
+          setData(response.data.profile);
+          setPassengerId(response.data.profile?._id);
+          setPassenger(response.data.profile);
+          console.log(response.data.profile, "details")
           toast.success('Book a ride with ease', { style: { background: '#4CAF50', color: 'white' } });
         }
       } catch (error) {
@@ -391,7 +392,7 @@ function Ride() {
   const toggleFeatures = (option) => setShowFeatures((prev) => ({ ...prev, [option]: !prev[option] }));
 
   return (
-    <div className={`min-h-screen font-sans flex flex-col ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-900'}`}>
+    <div className={` font-sans flex flex-col ${theme === 'light' ? 'bg-gray-100' : 'bg-gray-900'}`}>
       {/* Header */}
       <header className={`flex items-center justify-between p-4 shadow-sm ${theme === 'light' ? 'bg-white' : 'bg-gray-700'}`}>
         <div className="flex items-center space-x-3">
@@ -417,7 +418,7 @@ function Ride() {
                 <FaTimes size={20} />
               </button>
             </div>
-            <p className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>Name: {passenger?.firstName || 'James'}</p>
+            <p className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>Name: {passenger.userId?.firstName || 'James'}</p>
             <p className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>Email: {passenger?.userEmail || 'james@example.com'}</p>
             <p className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>Phone: {passenger?.phoneNumber}</p>
             <p className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>Location: {passenger?.location?.state}, {passenger?.location?.lga}</p>
@@ -707,7 +708,7 @@ function Ride() {
 
             <div className={`mt-4 text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-300'}`}>
               <p>Distance: {rideForm.distance ? `${rideForm.distance} km` : 'Not calculated'}</p>
-              <p>Calculated Price: <span className={`font-semibold ${theme === 'light' ? 'text-customGreen' : 'text-GreenColor'}`}>{rideForm.calculatedPrice ? `₦${rideForm.calculatedPrice}` : 'Not calculated'}</span></p>
+              <p>Calculated Price: <span className={`font-semibold ${theme === 'light' ? 'text-customGreen' : 'text-white font-bold'}`}>{rideForm.calculatedPrice ? `₦${rideForm.calculatedPrice}` : 'Not calculated'}</span></p>
               {rideForm.desiredPrice && (
                 <p>Desired Price: <span className={`font-semibold ${theme === 'light' ? 'text-blue-600' : 'text-blue-400'}`}>₦{rideForm.desiredPrice}</span></p>
               )}

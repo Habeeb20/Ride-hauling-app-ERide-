@@ -42,7 +42,7 @@ export default (io) => {
 
   // Create a new ride
   erideRouter.post("/create", verifyToken, async (req, res) => {
-    const passengerId = req.user.id;
+    const passengerId = req.user?.id || req.user?._id; 
     const { pickupAddress, destinationAddress, passengerNum, rideOption, paymentMethod, desiredPrice } = req.body;
 
     try {
@@ -54,7 +54,7 @@ export default (io) => {
       if (!user) return res.status(404).json({ error: "User not found" });
 
       const passenger = await Profile.findOne({ userId: passengerId });
-      if (!passenger || passenger.role !== "passenger") {
+      if (!passenger || passenger.role !== "client") {
         return res.status(403).json({ error: "Invalid passenger" });
       }
 
@@ -70,7 +70,7 @@ export default (io) => {
         destinationCoordinates.lat,
         destinationCoordinates.lng
       );
-      const calculatedPrice = Math.round(distance * 200); // NGN per km
+      const calculatedPrice = Math.round(distance * 200);
 
       const ride = new Ride({
         clientId: user._id,
@@ -127,7 +127,7 @@ export default (io) => {
   // Get available rides for drivers
   erideRouter.get("/available", verifyToken, async (req, res) => {
     try {
-      const driver = await Profile.findOne({ userId: req.user.id });
+      const driver = await Profile.findOne({ userId: req.user?.id });
       if (!driver || driver.role !== "driver") {
         return res.status(403).json({ error: "Invalid driver" });
       }
@@ -180,7 +180,7 @@ export default (io) => {
 
   // Driver submits an offer (accept or negotiate)
   erideRouter.post("/:rideId/offer", verifyToken, async (req, res) => {
-    const driverId = req.user.id;
+    const driverId = req.user?.id || req.user?._id; ;
     const { rideId } = req.params;
     const { offeredPrice } = req.body;
 
@@ -239,7 +239,7 @@ export default (io) => {
   erideRouter.post("/:rideId/confirm-driver", verifyToken, async (req, res) => {
     const { rideId } = req.params;
     const { driverId } = req.body;
-    const passengerId = req.user.id;
+    const passengerId = req.user?.id || req.user?._id; ;
 
     try {
       const ride = await Ride.findById(rideId).populate("driverOffers.driver");
@@ -323,7 +323,7 @@ export default (io) => {
   erideRouter.post("/:rideId/reject-driver", verifyToken, async (req, res) => {
     const { rideId } = req.params;
     const { driverId } = req.body;
-    const passengerId = req.user.id;
+    const passengerId = req.user?.id || req.user?._id; ;
 
     try {
       const ride = await Ride.findById(rideId).populate("driverOffers.driver");
@@ -358,7 +358,7 @@ export default (io) => {
   // Driver starts the ride
   erideRouter.put("/:rideId/start", verifyToken, async (req, res) => {
     const { rideId } = req.params;
-    const driverId = req.user.id;
+    const driverId = req.user?.id || req.user?._id; 
 
     try {
       const ride = await Ride.findById(rideId);
@@ -464,7 +464,7 @@ export default (io) => {
   erideRouter.post("/:rideId/update-location", verifyToken, async (req, res) => {
     const { rideId } = req.params;
     const { lat, lng } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id || req.user?._id; 
 
     try {
       const ride = await Ride.findById(rideId);
@@ -685,7 +685,7 @@ export default (io) => {
   // Get interested drivers for a ride
   erideRouter.get("/:rideId/interested-drivers", verifyToken, async (req, res) => {
     const { rideId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user?.id || req.user?._id; ;
 
     try {
       const ride = await Ride.findById(rideId).populate("driverOffers.driver");
@@ -726,21 +726,25 @@ export default (io) => {
   // Get driver statistics (completed rides, rejected rides, earnings, platform fee, income)
   erideRouter.get("/driver/:driverId/stats", verifyToken, async (req, res) => {
     const { driverId } = req.params;
-    const userId = req.user.id;
-
+    const userId =req.user?.id || req.user?._id; 
     try {
       // Verify the requesting user is the driver
-      if (userId !== driverId) {
-        return res.status(403).json({ error: "Unauthorized: You can only access your own statistics" });
-      }
-
-      const driverProfile = await Profile.findOne({ userId: driverId });
-      if (!driverProfile || driverProfile.role !== "driver") {
+      const userProfile = await User.findOne({ _id: userId });
+      if (!userProfile || userProfile.role !== "driver") {
         return res.status(403).json({ error: "Invalid driver" });
       }
 
+      const profile = await Profile.findOne({ userId: userProfile._id });
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+
+      if (profile._id.toString() !== driverId) {
+        return res.status(403).json({ error: "Unauthorized: Invalid client ID" });
+      }
+  
       // Query rides for the driver
-      const rides = await Ride.find({ driverId }).select("status desiredPrice");
+      const rides = await Ride.find({ driverId: profile._id }).select("status desiredPrice");
 
       // Calculate statistics
       const completedRides = rides.filter((ride) => ride.status === "completed").length;
@@ -767,25 +771,31 @@ export default (io) => {
   });
 
 
-
   erideRouter.get("/client/:clientId/stats", verifyToken, async (req, res) => {
     const { clientId } = req.params;
-    const userId = req.user.id;
-
+    const userId = req.user?.id || req.user?._id;
+  
     try {
-      // Verify the requesting user is the client
-      if (userId !== clientId) {
-        return res.status(403).json({ error: "Unauthorized: You can only access your own statistics" });
-      }
-
-      const clientProfile = await Profile.findOne({ userId: clientId });
-      if (!clientProfile || clientProfile.role !== "passenger") {
+      // Find the User to check role
+      const userProfile = await User.findOne({ _id: userId });
+      if (!userProfile || userProfile.role !== "client") {
         return res.status(403).json({ error: "Invalid client" });
       }
-
-      // Query rides for the client, selecting status and finalPrice
-      const rides = await Ride.find({ client: clientProfile._id }).select("status finalPrice");
-
+  
+      // Find the Profile to get Profile._id
+      const profile = await Profile.findOne({ userId: userProfile._id });
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+  
+      // Verify the clientId matches Profile._id
+      if (profile._id.toString() !== clientId) {
+        return res.status(403).json({ error: "Unauthorized: Invalid client ID" });
+      }
+  
+      // Query rides for the client
+      const rides = await Ride.find({ client: profile._id }).select("status finalPrice");
+  
       // Calculate statistics
       const totalBookings = rides.length;
       const completedRides = rides.filter((ride) => ride.status === "completed").length;
@@ -794,15 +804,17 @@ export default (io) => {
       const totalAmountSpent = rides
         .filter((ride) => ride.status === "completed")
         .reduce((sum, ride) => sum + (ride.finalPrice || 0), 0);
-
+      const cancelledBookings = rides.filter((ride) => ride.status === "cancelled").length;
+  
       const stats = {
         totalBookings,
         completedRides,
         rejectedRides,
         pendingBookings,
         totalAmountSpent,
+        cancelledBookings,
       };
-
+  
       res.status(200).json({ message: "Client statistics fetched", stats });
     } catch (error) {
       console.error("Error fetching client statistics:", error.message);

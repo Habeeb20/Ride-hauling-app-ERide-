@@ -78,14 +78,14 @@ const ClientDashboard = () => {
         }
 
         const bookingsResponse = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/ride/history`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/rides/history`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
         setBookings(bookingsResponse.data.history || []);
 
-        toast.success('You are welcome back', {
+        toast.success(`You are welcome back ${profileResponse.data?.profile?.userId?.firstName}`, {
           style: { background: '#4CAF50', color: 'white' },
         });
       } catch (error) {

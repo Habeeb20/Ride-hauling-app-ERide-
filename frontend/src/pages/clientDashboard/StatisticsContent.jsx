@@ -12,6 +12,7 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 const StatisticsContent = ({ isDarkTheme }) => {
   const [profile, setProfile] = useState({});
   const [clicks, setClicks] = useState(0);
+  const [profileId, setProfileId] = useState("")
   const [clientStats, setClientStats] = useState({
     totalBookings: 0,
     completedRides: 0,
@@ -41,6 +42,8 @@ const StatisticsContent = ({ isDarkTheme }) => {
         );
         const profileData = profileResponse.data?.profile || {};
         setProfile(profileData);
+        console.log(profileResponse.data?.profile, "myprofile")
+        setProfileId(profileResponse.data?.profile?._id)
 
         // Fetch clicks
         if (profileData.slug) {
@@ -50,9 +53,26 @@ const StatisticsContent = ({ isDarkTheme }) => {
           setClicks(clicksResponse.data.clicks || 0);
         }
 
+         // Validate profileId (Profile._id)
+         if (!profileData._id || typeof profileData._id !== 'string') {
+            console.error('Invalid or missing profileId:', profileData._id);
+            toast.error('Unable to fetch statistics: Invalid profile ID', {
+              style: { background: '#F44', color: 'white' },
+            });
+            setClientStats({
+              totalBookings: 0,
+              completedRides: 0,
+              rejectedRides: 0,
+              pendingBookings: 0,
+              totalAmountSpent: 0,
+              cancelledBookings: 0,
+            });
+            return;
+          }
+
         // Fetch client statistics
         const statsResponse = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/ride/client/${profileData.userId}/stats`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/rides/client/${profileData._id}/stats`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -61,7 +81,7 @@ const StatisticsContent = ({ isDarkTheme }) => {
 
         // Fetch ride history to count cancelled bookings
         const historyResponse = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/ride/history`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/rides/history`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -84,13 +104,25 @@ const StatisticsContent = ({ isDarkTheme }) => {
         });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        toast.error('An error occurred while fetching dashboard data', {
-          style: { background: '#F44', color: 'white' },
-        });
-        if (error.response?.status === 401 || error.response?.status === 404) {
-          localStorage.removeItem('token');
-          navigate('/login');
-        }
+        if (error.response?.status === 403) {
+            if (error.response?.data?.error.includes('Unauthorized')) {
+              toast.error('Unauthorized: Invalid client ID', {
+                style: { background: '#F44', color: 'white' },
+              });
+            } else if (error.response?.data?.error.includes('Invalid client')) {
+              toast.error('Profile role mismatch: Expected "client" role', {
+                style: { background: '#F44', color: 'white' },
+              });
+            }
+          } else {
+            toast.error('An error occurred while fetching dashboard data', {
+              style: { background: '#F44', color: 'white' },
+            });
+          }
+          if (error.response?.status === 401 || error.response?.status === 404) {
+            localStorage.removeItem('token');
+            navigate('/login');
+          }
       }
     };
 
@@ -306,3 +338,31 @@ const StatisticsContent = ({ isDarkTheme }) => {
 };
 
 export default StatisticsContent;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

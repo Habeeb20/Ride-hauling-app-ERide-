@@ -52,7 +52,7 @@ const DriverStatistics = ({ isDarkTheme }) => {
 
         // Fetch driver statistics
         const statsResponse = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/ride/driver/${profileData.userId}/stats`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/rides/driver/${profileData._id}/stats`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -61,7 +61,7 @@ const DriverStatistics = ({ isDarkTheme }) => {
 
         // Fetch ride history to count cancelled rides
         const historyResponse = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/ride/history`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/rides/history`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
