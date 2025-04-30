@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaEye } from 'react-icons/fa';
 
-const DriversContent = ({ isDarkTheme }) => {
+const Clients = ({ isDarkTheme }) => {
   const [drivers, setDrivers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null); // State for the details modal
   const [selectedImage, setSelectedImage] = useState(null); // State for the image modal
@@ -19,7 +19,7 @@ const DriversContent = ({ isDarkTheme }) => {
         if (stateFilter) params.state = stateFilter;
         if (lgaFilter) params.lga = lgaFilter;
 
-        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/drivers`, { params });
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/clients`, { params });
         if (response.data.status) {
           const fetchedDrivers = response.data.data || [];
           setDrivers(fetchedDrivers);
@@ -80,7 +80,7 @@ const DriversContent = ({ isDarkTheme }) => {
     <div>
       {/* Filter Section */}
       <div className={`p-4 rounded-lg mb-4 ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
-        <h2 className="text-xl font-bold mb-4">Filter Drivers</h2>
+        <h2 className="text-xl font-bold mb-4">Filter Clients</h2>
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <label className="block text-sm font-medium mb-2">State</label>
@@ -127,7 +127,7 @@ const DriversContent = ({ isDarkTheme }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {drivers.length === 0 ? (
           <p className={`text-center ${isDarkTheme ? 'text-gray-300' : 'text-gray-500'}`}>
-            No drivers found.
+            No clients found.
           </p>
         ) : (
           drivers.map((driver) => (
@@ -152,7 +152,7 @@ const DriversContent = ({ isDarkTheme }) => {
                   </button>
                 </div>
                 {/* Car Picture */}
-                <div className="relative">
+                {/* <div className="relative">
                   <img
                     src={driver.carPicture || 'https://via.placeholder.com/80?text=Car+Image'}
                     alt={`${driver.userId.firstName}'s Car`}
@@ -164,7 +164,7 @@ const DriversContent = ({ isDarkTheme }) => {
                   >
                     <FaEye />
                   </button>
-                </div>
+                </div> */}
               </div>
 
               {/* Driver Name */}
@@ -312,4 +312,4 @@ const DriversContent = ({ isDarkTheme }) => {
   );
 };
 
-export default DriversContent;
+export default Clients;

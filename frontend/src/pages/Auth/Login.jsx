@@ -28,16 +28,19 @@ const Login = () => {
       if (response.data.status) {
         localStorage.setItem("token", response.data.token);
         const role = response.data.role;
+     
+        const message = response.data?.message
+       
         const successMessage =
           role === "driver"
             ? "Login successful as Driver! Redirecting to Driver Dashboard..."
             : "Login successful as Passenger! Redirecting to Passenger Dashboard...";
 
-        toast.success(successMessage, {
-          style: { background: "#4CAF50", color: "white" },
+        toast.success( message, {
+          style: { background: "#4CAF50", color: "white", fontSize: "bold" },
         });
 
-        navigate(role === "driver" ? "/driver-dashboard" : "/clientdashboard");
+        navigate(role === "driver" ? "/driverdashboard" : "/clientdashboard");
       }
     } catch (err) {
       console.log("Login Error:", {

@@ -10,6 +10,7 @@ import EmailVerify from "./pages/Auth/verifyEmail";
 import { Toaster } from "sonner";
 import ProfileForm from "./pages/Auth/ProfileForm";
 import ClientDashboard from "./pages/clientDashboard/ClientDashboard";
+import DriverDashboard from "./pages/driverDashboard/driverDashboard";
 // import FaceAuth from "./pages/Auth/FaceAuth";
 // import DriverDashboard from "./pages/Driver/DriverDashboard";
 // import Fare from "./pages/Fare";
@@ -59,6 +60,7 @@ const App = () => {
         <Route path="/verifyemail" element={<EmailVerifyRoute />} />
          <Route path="/profileform" element={<ProfileForm  />} /> 
          <Route path="/clientdashboard" element={<ClientDashboard />} />
+         <Route path="/driverdashboard" element={<DriverDashboard />} />
         {/* <Route path="/fare" element={<Fare />} />
         <Route path="/cartracker" element={<CarTracker />} /> */}
 

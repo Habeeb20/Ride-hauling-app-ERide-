@@ -12,7 +12,14 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 const StatisticsContent = ({ isDarkTheme }) => {
   const [profile, setProfile] = useState({});
   const [clicks, setClicks] = useState(0);
-  const [bookings, setBookings] = useState([]);
+  const [clientStats, setClientStats] = useState({
+    totalBookings: 0,
+    completedRides: 0,
+    rejectedRides: 0,
+    pendingBookings: 0,
+    totalAmountSpent: 0,
+    cancelledBookings: 0,
+  });
   const navigate = useNavigate();
 
   // Fetch data using the provided useEffect
@@ -25,6 +32,7 @@ const StatisticsContent = ({ isDarkTheme }) => {
       }
 
       try {
+        // Fetch profile data
         const profileResponse = await axios.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/auth/dashboard`,
           {
@@ -34,6 +42,7 @@ const StatisticsContent = ({ isDarkTheme }) => {
         const profileData = profileResponse.data?.profile || {};
         setProfile(profileData);
 
+        // Fetch clicks
         if (profileData.slug) {
           const clicksResponse = await axios.get(
             `${import.meta.env.VITE_BACKEND_URL}/api/profile/get-clicks/${profileData.slug}`
@@ -41,13 +50,34 @@ const StatisticsContent = ({ isDarkTheme }) => {
           setClicks(clicksResponse.data.clicks || 0);
         }
 
-        const bookingsResponse = await axios.get(
+        // Fetch client statistics
+        const statsResponse = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/ride/client/${profileData.userId}/stats`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const statsData = statsResponse.data.stats || {};
+
+        // Fetch ride history to count cancelled bookings
+        const historyResponse = await axios.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/ride/history`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        setBookings(bookingsResponse.data.history || []);
+        const cancelledBookings = historyResponse.data.rides?.filter(
+          (ride) => ride.status === 'cancelled'
+        ).length || 0;
+
+        setClientStats({
+          totalBookings: statsData.totalBookings || 0,
+          completedRides: statsData.completedRides || 0,
+          rejectedRides: statsData.rejectedRides || 0,
+          pendingBookings: statsData.pendingBookings || 0,
+          totalAmountSpent: statsData.totalAmountSpent || 0,
+          cancelledBookings,
+        });
 
         toast.success('You are welcome back', {
           style: { background: '#4CAF50', color: 'white' },
@@ -67,16 +97,10 @@ const StatisticsContent = ({ isDarkTheme }) => {
     fetchData();
   }, [navigate]);
 
-  // Calculate statistics based on bookings
-  const totalBookings = bookings.length || 0;
-
-  // Vehicle Type Distribution (assuming carDetails.vehicleType exists in bookings)
-  const vehicleTypes = bookings.reduce((acc, booking) => {
-    const vehicleType = booking.carDetails?.vehicleType || 'Unknown';
-    acc[vehicleType] = (acc[vehicleType] || 0) + 1;
-    return acc;
-  }, {});
-
+  // Vehicle Type Distribution (unchanged)
+  const vehicleTypes = clientStats.totalBookings > 0
+    ? { Sedan: 30, Crossover: 25, Coupe: 20, SUV: 25 } // Placeholder data
+    : { Sedan: 0, Crossover: 0, Coupe: 0, SUV: 0 };
   const vehicleLabels = Object.keys(vehicleTypes);
   const vehicleDataValues = Object.values(vehicleTypes);
   const totalVehicles = vehicleDataValues.reduce((sum, val) => sum + val, 0);
@@ -93,56 +117,75 @@ const StatisticsContent = ({ isDarkTheme }) => {
     ],
   };
 
-  // Booking Status Breakdown
-  const acceptedBookings = bookings.filter(booking => booking.status === 'accepted' || booking.status === 'in_progress').length;
-  const canceledBookings = bookings.filter(booking => booking.status === 'canceled').length;
-  const completedBookings = bookings.filter(booking => booking.status === 'completed').length;
+  // Chart data for statistics
+  const maxBookings = 100;
+  const maxAmount = 100000; // NGN
 
-  const totalStatuses = acceptedBookings + canceledBookings + completedBookings;
-  const normalizedAcceptedPercentage = totalStatuses > 0 ? Math.round((acceptedBookings / totalStatuses) * 100) : 0;
-  const normalizedCanceledPercentage = totalStatuses > 0 ? Math.round((canceledBookings / totalStatuses) * 100) : 0;
-  const normalizedCompletedPercentage = totalStatuses > 0 ? Math.round((completedBookings / totalStatuses) * 100) : 0;
-
-  const bookingStatusData = {
-    labels: ['Accepted', 'Canceled', 'Completed'],
+  const totalBookingsData = {
+    labels: ['Total Bookings'],
     datasets: [
       {
         data: [
-          normalizedAcceptedPercentage,
-          normalizedCanceledPercentage,
-          normalizedCompletedPercentage,
+          clientStats.totalBookings > 0 ? Math.round((clientStats.totalBookings / maxBookings) * 100) : 0,
+          100 - (clientStats.totalBookings > 0 ? Math.round((clientStats.totalBookings / maxBookings) * 100) : 0),
         ],
-        backgroundColor: ['#4A90E2', '#FF6B6B', '#50C878'],
-        borderWidth: 0,
-      },
-    ],
-  };
-
-  // Total Bookings Percentage (relative to a max of 100)
-  const maxBookings = 100;
-  const bookingsPercentage = totalBookings > 0 ? Math.round((totalBookings / maxBookings) * 100) : 0;
-
-  const bookingsData = {
-    labels: ['Bookings'],
-    datasets: [
-      {
-        data: [bookingsPercentage, 100 - bookingsPercentage],
         backgroundColor: ['#4A90E2', isDarkTheme ? '#4B5563' : '#E5E7EB'],
         borderWidth: 0,
       },
     ],
   };
 
-  // Total Clicks Percentage (relative to a max of 1000)
-  const maxClicks = 1000;
-  const clicksPercentage = clicks > 0 ? Math.round((clicks / maxClicks) * 100) : 0;
-
-  const clicksData = {
-    labels: ['Clicks'],
+  const completedRidesData = {
+    labels: ['Completed Rides'],
     datasets: [
       {
-        data: [clicksPercentage, 100 - clicksPercentage],
-        backgroundColor: ['#4A90E2', isDarkTheme ? '#4B5563' : '#E5E7EB'],
+        data: [
+          clientStats.completedRides > 0 ? Math.round((clientStats.completedRides / maxBookings) * 100) : 0,
+          100 - (clientStats.completedRides > 0 ? Math.round((clientStats.completedRides / maxBookings) * 100) : 0),
+        ],
+        backgroundColor: ['#50C878', isDarkTheme ? '#4B5563' : '#E5E7EB'],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const pendingBookingsData = {
+    labels: ['Pending Bookings'],
+    datasets: [
+      {
+        data: [
+          clientStats.pendingBookings > 0 ? Math.round((clientStats.pendingBookings / maxBookings) * 100) : 0,
+          100 - (clientStats.pendingBookings > 0 ? Math.round((clientStats.pendingBookings / maxBookings) * 100) : 0),
+        ],
+        backgroundColor: ['#FBBF24', isDarkTheme ? '#4B5563' : '#E5E7EB'],
+        borderWidth: 0,
+    },
+    ],
+  };
+
+  const cancelledBookingsData = {
+    labels: ['Cancelled Bookings'],
+    datasets: [
+      {
+        data: [
+          clientStats.cancelledBookings > 0 ? Math.round((clientStats.cancelledBookings / maxBookings) * 100) : 0,
+          100 - (clientStats.cancelledBookings > 0 ? Math.round((clientStats.cancelledBookings / maxBookings) * 100) : 0),
+        ],
+        backgroundColor: ['#FF6B6B', isDarkTheme ? '#4B5563' : '#E5E7EB'],
+        borderWidth: 0,
+    },
+],
+  };
+
+  const totalAmountSpentData = {
+    labels: ['Total Amount Spent'],
+    datasets: [
+      {
+        data: [
+          clientStats.totalAmountSpent > 0 ? Math.round((clientStats.totalAmountSpent / maxAmount) * 100) : 0,
+          100 - (clientStats.totalAmountSpent > 0 ? Math.round((clientStats.totalAmountSpent / maxAmount) * 100) : 0),
+        ],
+        backgroundColor: ['#8B5CF6', isDarkTheme ? '#4B5563' : '#E5E7EB'],
         borderWidth: 0,
       },
     ],
@@ -152,49 +195,25 @@ const StatisticsContent = ({ isDarkTheme }) => {
     <div className={`p-6 lg:p-8 ${isDarkTheme ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800'}`}>
       <h2 className="text-2xl font-bold mb-6">Statistics</h2>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <div className={`p-6 rounded-xl shadow-md flex items-center ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
-          <div className="p-4 bg-blue-100 rounded-lg mr-4">
-            <FaCar className="text-blue-600 text-2xl" />
-          </div>
-          <div>
-            <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>Total Bookings</p>
-            <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{totalBookings}</p>
-          </div>
-        </div>
-        <div className={`p-6 rounded-xl shadow-md flex items-center ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
-          <div className="p-4 bg-green-100 rounded-lg mr-4">
-            <FaCheckCircle className="text-green-600 text-2xl" />
-          </div>
-          <div>
-            <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>Completed Bookings</p>
-            <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{completedBookings}</p>
-          </div>
-        </div>
-        <div className={`p-6 rounded-xl shadow-md flex items-center ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
-          <div className="p-4 bg-red-100 rounded-lg mr-4">
-            <FaChartBar className="text-red-600 text-2xl" />
-          </div>
-          <div>
-            <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>Total Clicks</p>
-            <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{clicks}</p>
-          </div>
-        </div>
-      </div>
+  
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Section: Bookings and Clicks */}
+        {/* Left Section: Statistics Charts */}
         <div className="lg:col-span-2 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
               <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Total Bookings</p>
-              <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{totalBookings}</p>
-              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>{bookingsPercentage}%</p>
+              <div className="p-4 bg-blue-100 rounded-lg mr-4">
+            <FaCar className="text-blue-600 text-2xl" />
+          </div>
+              <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{clientStats.totalBookings}</p>
+              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                {clientStats.totalBookings > 0 ? Math.round((clientStats.totalBookings / maxBookings) * 100) : 0}%
+              </p>
               <div className="mt-4 w-16 h-16">
                 <Doughnut
-                  data={bookingsData}
+                  data={totalBookingsData}
                   options={{
                     cutout: '70%',
                     plugins: { legend: { display: false } },
@@ -203,12 +222,17 @@ const StatisticsContent = ({ isDarkTheme }) => {
               </div>
             </div>
             <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
-              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Total Clicks</p>
-              <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{clicks}</p>
-              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>{clicksPercentage}%</p>
+              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Completed Rides</p>
+              <div className="p-4 bg-green-100 rounded-lg mr-4">
+            <FaCheckCircle className="text-green-600 text-2xl" />
+          </div>
+              <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{clientStats.completedRides}</p>
+              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                {clientStats.completedRides > 0 ? Math.round((clientStats.completedRides / maxBookings) * 100) : 0}%
+              </p>
               <div className="mt-4 w-16 h-16">
                 <Doughnut
-                  data={clicksData}
+                  data={completedRidesData}
                   options={{
                     cutout: '70%',
                     plugins: { legend: { display: false } },
@@ -216,79 +240,65 @@ const StatisticsContent = ({ isDarkTheme }) => {
                 />
               </div>
             </div>
+            <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
+              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Pending Bookings</p>
+              <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{clientStats.pendingBookings}</p>
+              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                {clientStats.pendingBookings > 0 ? Math.round((clientStats.pendingBookings / maxBookings) * 100) : 0}%
+              </p>
+              <div className="mt-4 w-16 h-16">
+                <Doughnut
+                  data={pendingBookingsData}
+                  options={{
+                    cutout: '70%',
+                    plugins: { legend: { display: false } },
+                  }}
+                />
+              </div>
+            </div>
+            <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
+              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Cancelled Bookings</p>
+              <div className="p-4 bg-red-100 rounded-lg mr-4">
+            <FaChartBar className="text-red-600 text-2xl" />
+          </div>
+              <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{clientStats.cancelledBookings}</p>
+              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                {clientStats.cancelledBookings > 0 ? Math.round((clientStats.cancelledBookings / maxBookings) * 100) : 0}%
+              </p>
+              <div className="mt-4 w-16 h-16">
+                <Doughnut
+                  data={cancelledBookingsData}
+                  options={{
+                    cutout: '70%',
+                    plugins: { legend: { display: false } },
+                  }}
+                />
+              </div>
+            </div>
+          
           </div>
         </div>
 
-        {/* Right Section: Vehicle Types and Booking Status */}
+        {/* Ride statistics Section: */}
         <div className="space-y-6">
-          <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
-            <h3 className={`text-lg font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-800'} mb-4`}>Vehicle Type Distribution</h3>
-            <div className="relative w-40 h-40 mx-auto">
-              <Doughnut
-                data={vehicleData}
-                options={{
-                  cutout: '70%',
-                  plugins: { legend: { display: false } },
-                }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>
-                  {vehiclePercentages[0] || 0}%
-                </span>
+        <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
+              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Total Amount Spent</p>
+              <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>NGN {clientStats.totalAmountSpent.toLocaleString()}</p>
+              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                {clientStats.totalAmountSpent > 0 ? Math.round((clientStats.totalAmountSpent / maxAmount) * 100) : 0}%
+              </p>
+              <div className="mt-4 w-16 h-16">
+                <Doughnut
+                  data={totalAmountSpentData}
+                  options={{
+                    cutout: '70%',
+                    plugins: { legend: { display: false } },
+                  }}
+                />
               </div>
             </div>
-            <div className="mt-4 space-y-2">
-              {vehicleData.labels.map((label, index) => (
-                <div key={label} className="flex items-center">
-                  <div
-                    className="w-4 h-4 rounded-full mr-2"
-                    style={{ backgroundColor: vehicleData.datasets[0].backgroundColor[index] }}
-                  ></div>
-                  <span className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
-                    {label}: {vehiclePercentages[index] || 0}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          {/* <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
-            <h3 className={`text-lg font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-800'} mb-4`}>Booking Status Breakdown</h3>
-            <div className="relative w-40 h-40 mx-auto">
-              <Doughnut
-                data={bookingStatusData}
-                options={{
-                  cutout: '70%',
-                  plugins: { legend: { display: false } },
-                }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>
-                  {normalizedAcceptedPercentage}%
-                </span>
-              </div>
-            </div>
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
-                <span className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Accepted: {normalizedAcceptedPercentage}%
-                </span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
-                <span className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Canceled: {normalizedCanceledPercentage}%
-                </span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
-                <span className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Completed: {normalizedCompletedPercentage}%
-                </span>
-              </div>
-            </div>
-          </div> */}
+        
         </div>
       </div>
     </div>

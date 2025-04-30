@@ -3,17 +3,20 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 
-import CarsContent from './CarsContent';
+
 import { FaHistory,  } from 'react-icons/fa';
 import { FaTruck, } from 'react-icons/fa';
 import { FaLightbulb } from 'react-icons/fa';
-import StatisticsContent from './StatisticsContent';
+
 import { FaBars, FaChartBar, FaFilter, FaCar, FaMapMarkedAlt } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { FaUser } from 'react-icons/fa';
-import Ride from './Ride';
-import Schedule from './Schedule';
-import History from './History';
+import DriverHistory from './DriverHistory';
+import Clients from './Clients';
+import AvailableSchedules from './AvailableSchedules';
+import AvailableRidesOrder from './AvailableRidesOrder';
+import DriverStatistics from './DriverStatistics';
+
     const Navbar = ({ toggleTheme, isDarkTheme, profile }) => (
         <nav className={`fixed top-0 left-0 w-full z-50 shadow p-4 flex justify-between items-center ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
           <div className="flex items-center space-x-4">
@@ -41,7 +44,7 @@ import History from './History';
         </nav>
       );
 
-const ClientDashboard = () => {
+const DriverDashboard = () => {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -124,11 +127,11 @@ const ClientDashboard = () => {
           </div>
         </div>
 
-        {activeTab === 'History' && <History isDarkTheme={isDarkTheme} />}
-        {activeTab === 'Cars' && <CarsContent isDarkTheme={isDarkTheme} />}
-        {activeTab === 'Schedule' && <Schedule isDarkTheme={isDarkTheme} />}
-        {activeTab === 'Dashboard' && <StatisticsContent isDarkTheme={isDarkTheme} />}
-        {activeTab === 'Book' && <Ride isDarkTheme={isDarkTheme} />}
+        {activeTab === 'History' && <DriverHistory isDarkTheme={isDarkTheme} />}
+        {activeTab === 'clients' && <Clients isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Schedule' && <AvailableSchedules isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Dashboard' && <DriverStatistics isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Orders' && <AvailableRidesOrder isDarkTheme={isDarkTheme} />}
       </div>
     );
   };
@@ -177,7 +180,7 @@ const ClientDashboard = () => {
                 : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
             }`}
           >
-            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Book a ride
+            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Available rides
           </button>
         </li>
         <li>
@@ -198,16 +201,16 @@ const ClientDashboard = () => {
         <li>
           <button
             onClick={() => {
-              setActiveTab('Cars');
+              setActiveTab('clients');
               setIsSidebarOpen(false);
             }}
             className={`flex items-center w-full text-left ${
-              activeTab === 'Cars'
+              activeTab === 'clients'
                 ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
                 : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
             }`}
           >
-            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Drivers
+            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Clients
           </button>
         </li>
         <li>
@@ -222,7 +225,7 @@ const ClientDashboard = () => {
                 : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
             }`}
           >
-            <FaMapMarkedAlt className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Schedule
+            <FaMapMarkedAlt className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Schedules
           </button>
         </li>
         <li>
@@ -260,4 +263,4 @@ const ClientDashboard = () => {
   );
 };
 
-export default ClientDashboard;
+export default DriverDashboard;
