@@ -888,7 +888,7 @@ const ProfileForm = ({ userId }) => {
   };
 
   useEffect(() => {
-    if (!email || !role || !["client", "driver"].includes(role)) {
+    if (!email || !role || !["client", "driver", "admin"].includes(role)) {
       setError("Invalid email or role. Please try registering again.");
       toast.error("Invalid email or role. Please try registering again.", {
         style: { background: "#F44336", color: "white" },

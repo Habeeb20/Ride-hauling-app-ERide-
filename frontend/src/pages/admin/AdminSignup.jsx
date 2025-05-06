@@ -1,55 +1,54 @@
+
 import { useState } from "react";
 import { FaFacebookF, FaGoogle, FaTwitter, FaUserCheck } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "sonner"; // For notifications
 import axios from "axios";
 import Navbar from "../../component/Navbar";
-import im from "../../assets/Board Cover.jpg";
-
-const Login = () => {
+import im from "../../assets/Board Cover.jpg"; // Picture of a car
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
+const AdminSignup = () => {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting login with data:", { email, password });
     setLoading(true);
     setError(null);
-
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
-        email,
-        password,
-      });
-
+      console.log("Sending registration request with:", { firstName, lastName, email, password });
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/register`,
+        {
+          firstName,
+          lastName,
+          email,
+          role,
+          password,
+        },
+        { headers: { "Content-Type": "application/json" } }
+      );
       if (response.data.status) {
         localStorage.setItem("token", response.data.token);
-        const role = response.data.role;
-     
-        const message = response.data?.message
-       
-        const successMessage =
-          role === "driver"
-            ? "Login successful as Driver! Redirecting to Driver Dashboard..."
-            : "Login successful as Passenger! Redirecting to Passenger Dashboard...";
-
-        toast.success( message, {
-          style: { background: "#4CAF50", color: "white", fontSize: "bold" },
+        navigate(`/verifyemail?email=${encodeURIComponent(email)}&role=${encodeURIComponent(role)}`);
+        toast.success("Registration successful! Redirecting to verify email...", {
+          style: { background: "#4CAF50", color: "white" },
         });
-     
-        navigate(role === "driver" ? "/driverdashboard" : role ==="client" ? "/clientdashboard" : "/adminDashboard");
       }
     } catch (err) {
-      console.log("Login Error:", {
-        message: err.response?.data?.message || err.message || "An unknown error occurred",
-        status: err.response?.status,
-        data: err.response?.data,
-        stack: err.stack,
-      });
-      const errorMessage = err.response?.data?.message || err.message || "Login failed. Please try again.";
+      console.log(err);
+      const errorMessage = err.response?.data?.message || "Registration failed. Please try again.";
       setError(errorMessage);
       toast.error(errorMessage, {
         style: { background: "#F44336", color: "white" },
@@ -67,7 +66,7 @@ const Login = () => {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen flex items-center justify-center bg-white px-4 relative overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center bg-white px-4 mt-5 relative overflow-hidden">
         {/* Animated Car Background */}
         <div
           className="absolute inset-0 bg-cover bg-center animate-car-cruise"
@@ -81,10 +80,40 @@ const Login = () => {
         <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg relative z-10">
           <div className="flex flex-col items-center mb-6">
             <FaUserCheck size={64} className="text-customGray mb-2" />
-            <h1 className="text-2xl font-bold text-gray-800">Login</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Register</h1>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                First Name
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Enter your first name"
+                className="w-full p-3 border border-activeColor rounded-full focus:outline-none focus:ring-2 focus:ring-custom"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                Last Name
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Enter your last name"
+                className="w-full p-3 border border-activeColor rounded-full focus:outline-none focus:ring-2 focus:ring-custom"
+                required
+              />
+            </div>
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -95,9 +124,10 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="w-full p-3 border border-e-ride-purple rounded-full focus:outline-none focus:ring-2 focus:ring-e-ride-purple"
+                className="w-full p-3 border border-activeColor rounded-full focus:outline-none focus:ring-2 focus:ring-custom"
                 required
               />
+             
             </div>
 
             <div>
@@ -105,15 +135,41 @@ const Login = () => {
                 Password
               </label>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full p-3 border border-e-ride-purple rounded-full focus:outline-none focus:ring-2 focus:ring-e-ride-purple"
+                className="w-full p-3 border border-activeColor rounded-full focus:outline-none focus:ring-2 focus:ring-custom"
                 required
               />
+                {/* <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500"
+                >
+             {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button> */}
+           
             </div>
+           
+            <div className="flex space-x-4">
+              <h4 className="font-bold">Role:</h4>
+                 <label className="flex items-center">
+                   <input
+                     type="radio"
+                     value="admin"
+                     checked={role === "admin"}
+                     onChange={(e) => setRole(e.target.value)}
+                     className="mr-2"
+                     disabled={loading}
+                   />
+                   Admin
+                 </label>
+            
+              
+               
+               </div>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
 
@@ -122,7 +178,7 @@ const Login = () => {
               disabled={loading}
               className="w-full py-3 bg-customGreen text-white font-semibold rounded-full hover:from-purple-600 hover:to-e-ride-purple focus:outline-none focus:ring-2 focus:ring-e-ride-purple transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Signing In..." : "SIGN IN"}
+              {loading ? "Registering..." : "REGISTER"}
             </button>
           </form>
 
@@ -151,9 +207,9 @@ const Login = () => {
           </div>
 
           <p className="mt-4 text-center text-sm text-gray-600">
-            Don’t have an account?{" "}
-            <a href="/register" className="text-e-ride-purple hover:underline">
-              Sign up
+            Already have an account?{" "}
+            <a href="/login" className="text-e-ride-purple hover:underline">
+              Login
             </a>
           </p>
         </div>
@@ -162,8 +218,4 @@ const Login = () => {
   );
 };
 
-export default Login;
-
-
-
-
+export default AdminSignup;

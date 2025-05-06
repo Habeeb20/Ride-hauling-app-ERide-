@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-
+import im from "../../assets/pic.jpg"
+import im2 from "../../assets/Board Cover.jpg"
 import CarsContent from './CarsContent';
-import { FaHistory,  } from 'react-icons/fa';
+import { FaHistory, FaRebel,  } from 'react-icons/fa';
 import { FaTruck, } from 'react-icons/fa';
 import { FaLightbulb } from 'react-icons/fa';
 import StatisticsContent from './StatisticsContent';
@@ -14,6 +15,14 @@ import { FaUser } from 'react-icons/fa';
 import Ride from './Ride';
 import Schedule from './Schedule';
 import History from './History';
+import Freight from './Freight';
+import OwnAcar from './OwnAcar';
+import RideAlong from './RideAlong';
+import { FaStopwatch } from 'react-icons/fa';
+import RegisterVehicle from '../Vehicle/RegisterVehicle';
+import OwnerDashboard from '../Vehicle/OwnerDashboard';
+import RideStatistics from './RideStatistics';
+import ReportDriver from './ReportDriver';
     const Navbar = ({ toggleTheme, isDarkTheme, profile }) => (
         <nav className={`fixed top-0 left-0 w-full z-50 shadow p-4 flex justify-between items-center ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
           <div className="flex items-center space-x-4">
@@ -47,9 +56,16 @@ const ClientDashboard = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [profile, setProfile] = useState({});
   const [clicks, setClicks] = useState(0);
+  const [isBackgroundOn, setIsBackgroundOn] = useState(true);
   const [bookings, setBookings] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
+  const [carPositions, setCarPositions] = useState([
+    { x: 50, y: 50, targetX: window.innerWidth / 2, targetY: window.innerHeight / 2 }, // Top-left
+    { x: window.innerWidth - 50, y: 50, targetX: window.innerWidth / 2, targetY: window.innerHeight / 2 }, // Top-right
+    { x: 50, y: window.innerHeight - 50, targetX: window.innerWidth / 2, targetY: window.innerHeight / 2 }, // Bottom-left
+    { x: window.innerWidth - 50, y: window.innerHeight - 50, targetX: window.innerWidth / 2, targetY: window.innerHeight / 2 }, // Bottom-right
+  ]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -126,8 +142,15 @@ const ClientDashboard = () => {
 
         {activeTab === 'History' && <History isDarkTheme={isDarkTheme} />}
         {activeTab === 'Cars' && <CarsContent isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Freight' && <Freight isDarkTheme={isDarkTheme} />}
+        {activeTab === 'OwnAcar' && <OwnAcar isDarkTheme={isDarkTheme} />}
+        {activeTab === 'rideStatistics'  && <RideStatistics isDarkTheme={isDarkTheme} />}
         {activeTab === 'Schedule' && <Schedule isDarkTheme={isDarkTheme} />}
         {activeTab === 'Dashboard' && <StatisticsContent isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Ride-Along' && <RideAlong isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Report' && <ReportDriver isDarkTheme={isDarkTheme} />}
+        {activeTab === 'rent-vehicle' && <RegisterVehicle isDarkTheme={isDarkTheme} />}
+        {activeTab === 'renting' && <OwnerDashboard isDarkTheme={isDarkTheme} />}
         {activeTab === 'Book' && <Ride isDarkTheme={isDarkTheme} />}
       </div>
     );
@@ -136,7 +159,54 @@ const ClientDashboard = () => {
   return (
     <>
       <Navbar toggleTheme={toggleTheme} isDarkTheme={isDarkTheme} profile={profile} />
-      <div className={`flex min-h-screen font-sans ${isDarkTheme ? 'bg-gray-100' : 'bg-gray-200'}`}>
+    
+
+   
+      {isBackgroundOn ? (
+        <div
+          className="absolute inset-0 bg-cover bg-center animate-car-cruise"
+          style={{
+            backgroundImage: `url(${im2})`,
+            opacity: 0.10,
+            zIndex: 0,
+          }}
+        ></div>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 0,   opacity:0.15 }}>
+          <img
+            src={im2}
+            alt="Static car"
+            className="w-74 h-min-screen object-contain opacity-50"
+          />
+        </div>
+      )}
+      <div  className={`flex min-h-screen font-sans ${isDarkTheme ? 'bg-gray-800' : 'bg-transparent'}`}
+      style={{
+        backgroundImage: isDarkTheme
+          ? 'none'
+          : `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${im})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {carPositions.length > 0 ? (
+        carPositions.map((position, index) => (
+          <div
+            key={index}
+            className="absolute transition-[left,top] duration-300 ease-linear"
+            style={{
+              left: `${position.x}px`,
+              top: `${position.y}px`,
+              transform: 'translate(-50%, -50%)',
+            }}
+            aria-label={`Driver location ${index + 1}`}
+          >
+            <FaCar size={40} className="text-yellow-500 animate-bounce" />
+          </div>
+        ))
+      ) : (
+        <p className="text-white">No active drivers found</p>
+      )}
         <div
           className={`fixed inset-y-0 left-0 w-64 bg-GreenColor shadow-lg transform ${
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -163,7 +233,19 @@ const ClientDashboard = () => {
             }`}
           >
             <FaChartBar className={`${isDarkTheme ? 'text-gray-300' : 'text-white'} mr-3`} /> Dashboard
+            <button
+        onClick={() => setIsBackgroundOn(!isBackgroundOn)}
+        className={`px-4 py-2 ml-2 rounded-lg shadow-md transition-colors ${
+          isDarkTheme
+            ? `bg-gray-800 text-white hover:bg-gray-700`
+            : `bg-white text-gray-800 hover:bg-gray-100`
+        }`}
+        aria-label={isBackgroundOn ? 'Turn off car background' : 'Turn on car background'}
+      >
+        {isBackgroundOn ? 'stop ' : 'move'}
+      </button>
           </button>
+     
         </li>
         <li>
           <button
@@ -178,6 +260,21 @@ const ClientDashboard = () => {
             }`}
           >
             <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Book a ride
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('rideStatistics');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'rideStatistics'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaStopwatch className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Statistics
           </button>
         </li>
         <li>
@@ -198,6 +295,21 @@ const ClientDashboard = () => {
         <li>
           <button
             onClick={() => {
+              setActiveTab('Freight');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'Freight'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaHistory className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} />Freight
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
               setActiveTab('Cars');
               setIsSidebarOpen(false);
             }}
@@ -213,6 +325,51 @@ const ClientDashboard = () => {
         <li>
           <button
             onClick={() => {
+              setActiveTab('OwnAcar');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'OwnAcar'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> have a car?
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('rent-vehicle');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'rent-vehicle'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Rent your vehicle?
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('report');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'report'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaRebel className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Report a driver?
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
               setActiveTab('Schedule');
               setIsSidebarOpen(false);
             }}
@@ -223,6 +380,39 @@ const ClientDashboard = () => {
             }`}
           >
             <FaMapMarkedAlt className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Schedule
+          </button>
+        </li>
+
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('renting');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'renting'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaMapMarkedAlt className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> who wants to rent
+          </button>
+        </li>
+
+
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('Ride-Along');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'Ride-Along'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Ride Along
           </button>
         </li>
         <li>
@@ -261,3 +451,49 @@ const ClientDashboard = () => {
 };
 
 export default ClientDashboard;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

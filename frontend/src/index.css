@@ -16,7 +16,7 @@
 
 /* Animation tailored for a car image */
 .animate-car-cruise {
-  animation: carCruise 18s infinite ease-in-out;
+  animation: carCruise 13s infinite ease-in-out;
 }
 
 @keyframes carCruise {
@@ -43,3 +43,18 @@
   background-repeat: no-repeat; /* No tiling, just one car */
   background-position: center; /* Center the car */
 }
+
+
+@keyframes moveCar {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(30px); }
+  100% { transform: translateX(0); }
+}
+
+.animate-car {
+  animation: moveCar 2s ease-in-out infinite;
+}
+
+
+
+

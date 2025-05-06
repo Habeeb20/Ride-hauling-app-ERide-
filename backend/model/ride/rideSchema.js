@@ -30,7 +30,19 @@ const rideSchema = new mongoose.Schema({
   distance: { type: Number, required: true },
   rideOption: { type: String, enum: ["economy", "premium", "shared"], default: "economy" },
   paymentMethod: { type: String, enum: ["cash", "transfer"], required: true },
-  interestedDrivers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Profile' }],
+  interestedDrivers: [
+    {
+      driverId: { type: mongoose.Schema.Types.ObjectId, ref: 'Auth', required: true },
+      action: {
+        type: String,
+        enum: ['accepted', 'negotiated', 'rejected'],
+        required: true,
+      },
+      offeredPrice: { type: Number }, // Optional for rejections
+      timestamp: { type: Date, default: Date.now },
+    },
+  ],
+ 
   status: {
     type: String,
     enum: ["pending", "accepted", "in_progress", "completed", "cancelled", "rejected"],
@@ -39,7 +51,7 @@ const rideSchema = new mongoose.Schema({
   driverOffers: [
     {
       driver: { type: mongoose.Schema.Types.ObjectId, ref: "Profile" },
-      offeredPrice: { type: Number, required: true },
+      offeredPrice: { type: Number, },
       status: { type: String, enum: ["pending", "accepted", "rejected"], default: "pending" },
       timestamp: { type: Date, default: Date.now },
     },

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
-import { FaHistory, FaTruck, FaLightbulb } from 'react-icons/fa';
+import { FaHistory, FaTruck, FaLightbulb, FaCheckCircle, FaExchangeAlt } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,8 @@ const DriverStatistics = ({ isDarkTheme }) => {
   const [driverStats, setDriverStats] = useState({
     totalRides: 0,
     completedRides: 0,
+    acceptedRides: 0,
+    negotiatedRides: 0,
     rejectedRides: 0,
     cancelledRides: 0,
     totalEarnings: 0,
@@ -59,28 +61,15 @@ const DriverStatistics = ({ isDarkTheme }) => {
         );
         const statsData = statsResponse.data.stats || {};
 
-        // Fetch ride history to count cancelled rides
-        const historyResponse = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/rides/history`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const cancelledRides = historyResponse.data.history?.filter(
-          (ride) => ride.status === 'cancelled'
-        ).length || 0;
-
-        // Calculate income (assuming 20% platform fee)
-        const totalEarnings = statsData.totalEarnings || 0;
-        const income = totalEarnings * 0.8;
-
         setDriverStats({
           totalRides: statsData.totalRides || 0,
           completedRides: statsData.completedRides || 0,
+          acceptedRides: statsData.acceptedRides || 0,
+          negotiatedRides: statsData.negotiatedRides || 0,
           rejectedRides: statsData.rejectedRides || 0,
-          cancelledRides,
-          totalEarnings,
-          income,
+          cancelledRides: statsData.cancelledRides || 0,
+          totalEarnings: statsData.totalEarnings || 0,
+          income: statsData.income || 0,
         });
 
         toast.success('Welcome to your driver dashboard', {
@@ -110,8 +99,8 @@ const DriverStatistics = ({ isDarkTheme }) => {
     datasets: [
       {
         data: [
-          driverStats.totalRides > 0 ? Math.round((driverStats.totalRides / maxRides) * 100) : 0,
-          100 - (driverStats.totalRides > 0 ? Math.round((driverStats.totalRides / maxRides) * 100) : 0),
+          driverStats.totalRides > 0 ? Math.min(Math.round((driverStats.totalRides / maxRides) * 100), 100) : 0,
+          100 - (driverStats.totalRides > 0 ? Math.min(Math.round((driverStats.totalRides / maxRides) * 100), 100) : 0),
         ],
         backgroundColor: ['#4A90E2', isDarkTheme ? '#4B5563' : '#E5E7EB'],
         borderWidth: 0,
@@ -124,10 +113,38 @@ const DriverStatistics = ({ isDarkTheme }) => {
     datasets: [
       {
         data: [
-          driverStats.completedRides > 0 ? Math.round((driverStats.completedRides / maxRides) * 100) : 0,
-          100 - (driverStats.completedRides > 0 ? Math.round((driverStats.completedRides / maxRides) * 100) : 0),
+          driverStats.completedRides > 0 ? Math.min(Math.round((driverStats.completedRides / maxRides) * 100), 100) : 0,
+          100 - (driverStats.completedRides > 0 ? Math.min(Math.round((driverStats.completedRides / maxRides) * 100), 100) : 0),
         ],
         backgroundColor: ['#50C878', isDarkTheme ? '#4B5563' : '#E5E7EB'],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const acceptedRidesData = {
+    labels: ['Accepted Rides'],
+    datasets: [
+      {
+        data: [
+          driverStats.acceptedRides > 0 ? Math.min(Math.round((driverStats.acceptedRides / maxRides) * 100), 100) : 0,
+          100 - (driverStats.acceptedRides > 0 ? Math.min(Math.round((driverStats.acceptedRides / maxRides) * 100), 100) : 0),
+        ],
+        backgroundColor: ['#10B981', isDarkTheme ? '#4B5563' : '#E5E7EB'],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const negotiatedRidesData = {
+    labels: ['Negotiated Rides'],
+    datasets: [
+      {
+        data: [
+          driverStats.negotiatedRides > 0 ? Math.min(Math.round((driverStats.negotiatedRides / maxRides) * 100), 100) : 0,
+          100 - (driverStats.negotiatedRides > 0 ? Math.min(Math.round((driverStats.negotiatedRides / maxRides) * 100), 100) : 0),
+        ],
+        backgroundColor: ['#F59E0B', isDarkTheme ? '#4B5563' : '#E5E7EB'],
         borderWidth: 0,
       },
     ],
@@ -138,8 +155,8 @@ const DriverStatistics = ({ isDarkTheme }) => {
     datasets: [
       {
         data: [
-          driverStats.rejectedRides > 0 ? Math.round((driverStats.rejectedRides / maxRides) * 100) : 0,
-          100 - (driverStats.rejectedRides > 0 ? Math.round((driverStats.rejectedRides / maxRides) * 100) : 0),
+          driverStats.rejectedRides > 0 ? Math.min(Math.round((driverStats.rejectedRides / maxRides) * 100), 100) : 0,
+          100 - (driverStats.rejectedRides > 0 ? Math.min(Math.round((driverStats.rejectedRides / maxRides) * 100), 100) : 0),
         ],
         backgroundColor: ['#FF6B6B', isDarkTheme ? '#4B5563' : '#E5E7EB'],
         borderWidth: 0,
@@ -152,8 +169,8 @@ const DriverStatistics = ({ isDarkTheme }) => {
     datasets: [
       {
         data: [
-          driverStats.cancelledRides > 0 ? Math.round((driverStats.cancelledRides / maxRides) * 100) : 0,
-          100 - (driverStats.cancelledRides > 0 ? Math.round((driverStats.cancelledRides / maxRides) * 100) : 0),
+          driverStats.cancelledRides > 0 ? Math.min(Math.round((driverStats.cancelledRides / maxRides) * 100), 100) : 0,
+          100 - (driverStats.cancelledRides > 0 ? Math.min(Math.round((driverStats.cancelledRides / maxRides) * 100), 100) : 0),
         ],
         backgroundColor: ['#FBBF24', isDarkTheme ? '#4B5563' : '#E5E7EB'],
         borderWidth: 0,
@@ -166,8 +183,8 @@ const DriverStatistics = ({ isDarkTheme }) => {
     datasets: [
       {
         data: [
-          driverStats.totalEarnings > 0 ? Math.round((driverStats.totalEarnings / maxEarnings) * 100) : 0,
-          100 - (driverStats.totalEarnings > 0 ? Math.round((driverStats.totalEarnings / maxEarnings) * 100) : 0),
+          driverStats.totalEarnings > 0 ? Math.min(Math.round((driverStats.totalEarnings / maxEarnings) * 100), 100) : 0,
+          100 - (driverStats.totalEarnings > 0 ? Math.min(Math.round((driverStats.totalEarnings / maxEarnings) * 100), 100) : 0),
         ],
         backgroundColor: ['#8B5CF6', isDarkTheme ? '#4B5563' : '#E5E7EB'],
         borderWidth: 0,
@@ -180,8 +197,8 @@ const DriverStatistics = ({ isDarkTheme }) => {
     datasets: [
       {
         data: [
-          driverStats.income > 0 ? Math.round((driverStats.income / maxEarnings) * 100) : 0,
-          100 - (driverStats.income > 0 ? Math.round((driverStats.income / maxEarnings) * 100) : 0),
+          driverStats.income > 0 ? Math.min(Math.round((driverStats.income / maxEarnings) * 100), 100) : 0,
+          100 - (driverStats.income > 0 ? Math.min(Math.round((driverStats.income / maxEarnings) * 100), 100) : 0),
         ],
         backgroundColor: ['#10B981', isDarkTheme ? '#4B5563' : '#E5E7EB'],
         borderWidth: 0,
@@ -189,9 +206,9 @@ const DriverStatistics = ({ isDarkTheme }) => {
     ],
   };
 
-  // Total Clicks Percentage (unchanged)
+  // Total Clicks Percentage
   const maxClicks = 1000;
-  const clicksPercentage = clicks > 0 ? Math.round((clicks / maxClicks) * 100) : 0;
+  const clicksPercentage = clicks > 0 ? Math.min(Math.round((clicks / maxClicks) * 100), 100) : 0;
 
   const clicksData = {
     labels: ['Profile Views'],
@@ -217,18 +234,18 @@ const DriverStatistics = ({ isDarkTheme }) => {
           <div>
             <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>Total Rides</p>
             <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{driverStats.totalRides}</p>
-              <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
-                {driverStats.totalRides > 0 ? Math.round((driverStats.totalRides / maxRides) * 100) : 0}%
-              </p>
-              <div className="mt-4 w-16 h-16">
-                <Doughnut
-                  data={totalRidesData}
-                  options={{
-                    cutout: '70%',
-                    plugins: { legend: { display: false } },
-                  }}
-                />
-              </div>
+            <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+              {driverStats.totalRides > 0 ? Math.min(Math.round((driverStats.totalRides / maxRides) * 100), 100) : 0}%
+            </p>
+            <div className="mt-4 w-16 h-16">
+              <Doughnut
+                data={totalRidesData}
+                options={{
+                  cutout: '70%',
+                  plugins: { legend: { display: false } },
+                }}
+              />
+            </div>
           </div>
         </div>
         <div className={`p-6 rounded-xl shadow-md flex items-center ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
@@ -236,20 +253,20 @@ const DriverStatistics = ({ isDarkTheme }) => {
             <FaTruck className="text-green-600 text-2xl" role="img" aria-label="Completed Pickups" />
           </div>
           <div>
-          <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Completed Rides</p>
-                <p className={`text-xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{driverStats.completedRides}</p>
-                <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {driverStats.completedRides > 0 ? Math.round((driverStats.completedRides / maxRides) * 100) : 0}%
-                </p>
-                <div className="mt-2 w-16 h-16 mx-auto">
-                  <Doughnut
-                    data={completedRidesData}
-                    options={{
-                      cutout: '70%',
-                      plugins: { legend: { display: false } },
-                    }}
-                  />
-                </div>
+            <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Completed Rides</p>
+            <p className={`text-xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{driverStats.completedRides}</p>
+            <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+              {driverStats.completedRides > 0 ? Math.min(Math.round((driverStats.completedRides / maxRides) * 100), 100) : 0}%
+            </p>
+            <div className="mt-2 w-16 h-16 mx-auto">
+              <Doughnut
+                data={completedRidesData}
+                options={{
+                  cutout: '70%',
+                  plugins: { legend: { display: false } },
+                }}
+              />
+            </div>
           </div>
         </div>
         <div className={`p-6 rounded-xl shadow-md flex items-center ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
@@ -258,18 +275,12 @@ const DriverStatistics = ({ isDarkTheme }) => {
           </div>
           <div>
             <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>Total Earnings</p>
-            <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>NGN {driverStats.totalEarnings.toLocaleString()}</p>
+            <p className={`text-2xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>
+              NGN {driverStats.totalEarnings.toLocaleString()}
+            </p>
           </div>
         </div>
       </div>
-
-
-
-
-
-
-
-
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -277,16 +288,15 @@ const DriverStatistics = ({ isDarkTheme }) => {
         <div className="lg:col-span-2 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
-              
-            <div>
-                <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Cancelled Rides</p>
-                <p className={`text-xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{driverStats.cancelledRides}</p>
+              <div>
+                <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Accepted Rides</p>
+                <p className={`text-xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{driverStats.acceptedRides}</p>
                 <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {driverStats.cancelledRides > 0 ? Math.round((driverStats.cancelledRides / maxRides) * 100) : 0}%
+                  {driverStats.acceptedRides > 0 ? Math.min(Math.round((driverStats.acceptedRides / maxRides) * 100), 100) : 0}%
                 </p>
                 <div className="mt-2 w-16 h-16 mx-auto">
                   <Doughnut
-                    data={cancelledRidesData}
+                    data={acceptedRidesData}
                     options={{
                       cutout: '70%',
                       plugins: { legend: { display: false } },
@@ -296,15 +306,51 @@ const DriverStatistics = ({ isDarkTheme }) => {
               </div>
             </div>
             <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
-            <div>
+              <div>
+                <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Negotiated Rides</p>
+                <p className={`text-xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{driverStats.negotiatedRides}</p>
+                <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                  {driverStats.negotiatedRides > 0 ? Math.min(Math.round((driverStats.negotiatedRides / maxRides) * 100), 100) : 0}%
+                </p>
+                <div className="mt-2 w-16 h-16 mx-auto">
+                  <Doughnut
+                    data={negotiatedRidesData}
+                    options={{
+                      cutout: '70%',
+                      plugins: { legend: { display: false } },
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
+              <div>
                 <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Rejected Rides</p>
                 <p className={`text-xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{driverStats.rejectedRides}</p>
                 <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {driverStats.rejectedRides > 0 ? Math.round((driverStats.rejectedRides / maxRides) * 100) : 0}%
+                  {driverStats.rejectedRides > 0 ? Math.min(Math.round((driverStats.rejectedRides / maxRides) * 100), 100) : 0}%
                 </p>
                 <div className="mt-2 w-16 h-16 mx-auto">
                   <Doughnut
                     data={rejectedRidesData}
+                    options={{
+                      cutout: '70%',
+                      plugins: { legend: { display: false } },
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
+              <div>
+                <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Cancelled Rides</p>
+                <p className={`text-xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>{driverStats.cancelledRides}</p>
+                <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                  {driverStats.cancelledRides > 0 ? Math.min(Math.round((driverStats.cancelledRides / maxRides) * 100), 100) : 0}%
+                </p>
+                <div className="mt-2 w-16 h-16 mx-auto">
+                  <Doughnut
+                    data={cancelledRidesData}
                     options={{
                       cutout: '70%',
                       plugins: { legend: { display: false } },
@@ -319,15 +365,14 @@ const DriverStatistics = ({ isDarkTheme }) => {
         {/* Right Section: Driver Statistics */}
         <div className="space-y-6">
           <div className={`p-6 rounded-xl shadow-md ${isDarkTheme ? 'bg-gray-900' : 'bg-white'}`}>
-          
             <div className="space-y-6">
-          
-        
               <div>
                 <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'} mb-2`}>Income</p>
-                <p className={`text-xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>NGN {driverStats.income.toLocaleString()}</p>
+                <p className={`text-xl font-bold ${isDarkTheme ? 'text-white' : 'text-gray-800'}`}>
+                  NGN {driverStats.income.toLocaleString()}
+                </p>
                 <p className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {driverStats.income > 0 ? Math.round((driverStats.income / maxEarnings) * 100) : 0}%
+                  {driverStats.income > 0 ? Math.min(Math.round((driverStats.income / maxEarnings) * 100), 100) : 0}%
                 </p>
                 <div className="mt-2 w-16 h-16 mx-auto">
                   <Doughnut

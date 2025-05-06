@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 
 
-import { FaHistory,  } from 'react-icons/fa';
+import { FaHistory, FaStopwatch,  } from 'react-icons/fa';
 import { FaTruck, } from 'react-icons/fa';
 import { FaLightbulb } from 'react-icons/fa';
 
@@ -16,6 +16,8 @@ import Clients from './Clients';
 import AvailableSchedules from './AvailableSchedules';
 import AvailableRidesOrder from './AvailableRidesOrder';
 import DriverStatistics from './DriverStatistics';
+import FreightDriver from './FreightDriver';
+import DriverRideStatistics from './DriverRideStatistics';
 
     const Navbar = ({ toggleTheme, isDarkTheme, profile }) => (
         <nav className={`fixed top-0 left-0 w-full z-50 shadow p-4 flex justify-between items-center ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
@@ -88,7 +90,7 @@ const DriverDashboard = () => {
         );
         setBookings(bookingsResponse.data.history || []);
 
-        toast.success('You are welcome back', {
+        toast.success(`You are welcome back ${profileResponse.data?.profile?.userId?.firstName}`, {
           style: { background: '#4CAF50', color: 'white' },
         });
       } catch (error) {
@@ -129,9 +131,12 @@ const DriverDashboard = () => {
 
         {activeTab === 'History' && <DriverHistory isDarkTheme={isDarkTheme} />}
         {activeTab === 'clients' && <Clients isDarkTheme={isDarkTheme} />}
+        {activeTab === 'rideStatistics' && <DriverRideStatistics isDarkTheme={isDarkTheme} />}
         {activeTab === 'Schedule' && <AvailableSchedules isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Freight' && <FreightDriver isDarkTheme={isDarkTheme} />}
         {activeTab === 'Dashboard' && <DriverStatistics isDarkTheme={isDarkTheme} />}
         {activeTab === 'Orders' && <AvailableRidesOrder isDarkTheme={isDarkTheme} />}
+
       </div>
     );
   };
@@ -171,11 +176,11 @@ const DriverDashboard = () => {
         <li>
           <button
             onClick={() => {
-              setActiveTab('Book');
+              setActiveTab('Orders');
               setIsSidebarOpen(false);
             }}
             className={`flex items-center w-full text-left ${
-              activeTab === 'Dashboard'
+              activeTab === 'Orders'
                 ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
                 : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
             }`}
@@ -211,6 +216,36 @@ const DriverDashboard = () => {
             }`}
           >
             <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Clients
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('rideStatistics');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'rideStatistics'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaStopwatch className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Ride-Statistics
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('Freight');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'Freight'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Deliveries available
           </button>
         </li>
         <li>

@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
-
-export const verifyToken = (req, res, next) => {
+import User from "../model/auth/authSchema.js";
+export const verifyToken =  async (req, res, next) => {
 
   const authHeader = req.headers.authorization || req.headers.Authorization;
 
@@ -27,8 +27,16 @@ export const verifyToken = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; 
-    next(); 
+    const user = await User.findById(decoded.id).select('id role');
+    
+    if (!user) {
+      console.log('User not found for ID:', decoded.id);
+      return res.status(401).json({ status: false, message: 'User not found' });
+    }
+
+    req.user = { id: user._id.toString(), role: user.role };
+    console.log('Verified user:', req.user); // Debug log
+    next();
   } catch (error) {
     console.error("Token verification failed:", error.message);
  
@@ -41,3 +49,29 @@ export const verifyToken = (req, res, next) => {
     }
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

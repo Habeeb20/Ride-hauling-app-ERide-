@@ -40,30 +40,103 @@ export default (io) => {
     return Math.round(timeHours * 60); // Convert to minutes
   }
 
-  // Create a new ride
-  erideRouter.post("/create", verifyToken, async (req, res) => {
-    const passengerId = req.user?.id || req.user?._id; 
-    const { pickupAddress, destinationAddress, passengerNum, rideOption, paymentMethod, desiredPrice } = req.body;
 
+
+
+  erideRouter.post('/calculate-fare', async (req, res) => {
+    const { pickupAddress, destinationAddress, rideOption } = req.body;
+    if (!pickupAddress || !destinationAddress || !rideOption) {
+      return res.status(400).json({ status: false, error: 'Missing required fields: pickupAddress, destinationAddress, rideOption' });
+    }
+    if (!['economy', 'premium', 'shared'].includes(rideOption)) {
+      return res.status(400).json({ status: false, error: 'Invalid rideOption' });
+    }
+    try {
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyB58m9sAWsgdU4LjZO4ha9f8N11Px7aeps'; 
+      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(pickupAddress)}&destinations=${encodeURIComponent(destinationAddress)}&units=metric&key=${apiKey}`;
+  
+      const response = await axios.get(url);
+      const data = response.data;
+      console.log('Google Maps API Response:', data);
+  
+      if (data.status !== 'OK') {
+        return res.status(400).json({
+          status: false,
+          error: `API Error: ${data.status}`,
+          details: data.error_message || 'Unknown error',
+        });
+      }
+  
+      const element = data.rows[0]?.elements[0];
+      if (!element || element.status !== 'OK') {
+        return res.status(400).json({
+          status: false,
+          error: 'Unable to calculate distance',
+          details: element?.status || 'No route data available',
+        });
+      }
+  
+      const distanceInMeters = element.distance.value;
+      const distanceInKm = distanceInMeters / 1000;
+  
+      const baseFare = 500;
+      const ratePerKm = 100;
+      let fare = baseFare + distanceInKm * ratePerKm;
+  
+      // Apply rideOption multipliers
+      if (rideOption === 'premium') fare *= 1.5;
+      if (rideOption === 'shared') fare *= 0.7;
+  
+      console.log('Results:', {
+        distance: distanceInKm.toFixed(2),
+        calculatedPrice: Math.round(fare),
+        rideOption,
+      });
+  
+      return res.status(200).json({
+        status: true,
+        distance: distanceInKm.toFixed(2),
+        calculatedPrice: Math.round(fare),
+      });
+    } catch (error) {
+      console.error('Error calculating fare:', error.response?.data || error.message);
+      return res.status(500).json({
+        status: false,
+        error: 'An error occurred while calculating fare',
+        details: error.message,
+      });
+    }
+  });
+
+
+
+
+
+  erideRouter.post("/create", verifyToken, async (req, res) => {
+    const passengerId = req.user?.id || req.user?._id;
+    const { pickupAddress, destinationAddress, passengerNum, rideOption, paymentMethod, desiredPrice } = req.body;
+  
     try {
       if (!pickupAddress || !destinationAddress || !passengerNum || !rideOption || !paymentMethod) {
         return res.status(400).json({ error: "Missing required fields" });
       }
-
+  
       const user = await User.findById(passengerId);
-      if (!user) return res.status(404).json({ error: "User not found" });
-
-      const passenger = await Profile.findOne({ userId: passengerId });
-      if (!passenger || passenger.role !== "client") {
+      if (!user || user.role !== "client") {
         return res.status(403).json({ error: "Invalid passenger" });
       }
-
+  
+      const passenger = await Profile.findOne({ userId: user._id });
+      if (!passenger) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+  
       const pickupCoordinates = await geocodeAddress(pickupAddress);
       const destinationCoordinates = await geocodeAddress(destinationAddress);
       if (!pickupCoordinates || !destinationCoordinates) {
         return res.status(400).json({ error: "Failed to geocode addresses" });
       }
-
+  
       const distance = calculateDistance(
         pickupCoordinates.lat,
         pickupCoordinates.lng,
@@ -71,7 +144,7 @@ export default (io) => {
         destinationCoordinates.lng
       );
       const calculatedPrice = Math.round(distance * 200);
-
+  
       const ride = new Ride({
         clientId: user._id,
         client: passenger._id,
@@ -88,7 +161,7 @@ export default (io) => {
         status: "pending",
       });
       await ride.save();
-
+  
       const rideData = {
         _id: ride._id,
         clientId: { firstName: user.firstName, lastName: user.lastName, email: user.email },
@@ -110,13 +183,13 @@ export default (io) => {
         status: ride.status,
         createdAt: ride.createdAt,
       };
-
+  
       io.emit("newRideAvailable", rideData);
-      const nearbyDrivers = await Profile.find({ role: "driver" });
+      const nearbyDrivers = await Profile.find({}); // Adjust to filter drivers if needed
       nearbyDrivers.forEach((driver) => {
         io.to(driver._id.toString()).emit("newRideRequest", rideData);
       });
-
+  
       res.status(201).json({ message: "Ride created", ride: rideData });
     } catch (error) {
       console.error("Error creating ride:", error.message);
@@ -124,236 +197,344 @@ export default (io) => {
     }
   });
 
-  // Get available rides for drivers
+
+
+
   erideRouter.get("/available", verifyToken, async (req, res) => {
     try {
-      const driver = await Profile.findOne({ userId: req.user?.id });
-      if (!driver || driver.role !== "driver") {
+      const user = await User.findOne({ _id: req.user?.id || req.user?._id });
+      if (!user || user.role !== "driver") {
         return res.status(403).json({ error: "Invalid driver" });
       }
-
+  
+      const driver = await Profile.findOne({ userId: user._id });
+      if (!driver) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+  
       const rides = await Ride.find({ status: "pending", driverId: null })
-        .populate("client", "profilePicture phoneNumber")
+        .populate("client", "phoneNumber profilePicture")
         .populate("clientId", "firstName lastName email")
+        .populate("driverOffers.driver", "firstName lastName profilePicture carDetails phoneNumber rating")
+        .populate('interestedDrivers.driverId', 'firstName lastName phoneNumber profilePicture')
         .sort({ createdAt: -1 });
-
-      const nearbyRides = rides
-        .filter((ride) => {
-          if (!driver.location || !ride.pickupCoordinates) return false;
-          const distance = calculateDistance(
-            driver.location.lat,
-            driver.location.lng,
-            ride.pickupCoordinates.lat,
-            ride.pickupCoordinates.lng
-          );
-          return distance <= 10; // Within 10km
+  
+      const nearbyRides = await Promise.all(
+        rides.map(async (ride) => {
+          if (!driver.location || !ride.pickupCoordinates) return null;
+  
+          // Check if driver and client are in the same state
+          const clientProfile = await Profile.findOne({ userId: ride.clientId._id });
+          if (!clientProfile || clientProfile.location.state !== driver.location.state) {
+            return null;
+          }
+  
+          // Calculate driving time using Google Maps Distance Matrix API
+          try {
+            const distanceMatrixResponse = await axios.get(
+              `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${driver.location.coordinates.lat},${driver.location.coordinates.lng}&destinations=${ride.pickupCoordinates.lat},${ride.pickupCoordinates.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+            );
+  
+            const duration = distanceMatrixResponse.data.rows[0].elements[0].duration?.value; // Duration in seconds
+            if (!duration || duration / 60 > 20) {
+              return null; // Exclude rides with driving time > 20 minutes
+            }
+          } catch (apiError) {
+            console.error("Error fetching driving time:", apiError.message);
+            return null; // Skip ride if API call fails
+          }
+  
+          return {
+            _id: ride._id,
+            pickupAddress: ride.pickupAddress,
+            destinationAddress: ride.destinationAddress,
+            distance: ride.distance,
+            passengerNum: ride.passengerNum,
+            calculatedPrice: ride.calculatedPrice,
+            desiredPrice: ride.desiredPrice,
+            rideOption: ride.rideOption,
+            paymentMethod: ride.paymentMethod,
+            pickupCoordinates: ride.pickupCoordinates,
+            destinationCoordinates: ride.destinationCoordinates,
+            client: {
+              _id: ride.client._id,
+              firstName: ride.clientId.firstName,
+              lastName: ride.clientId.lastName,
+              email: ride.clientId.email,
+              phoneNumber: ride.client.phoneNumber,
+              profilePicture: ride.client.profilePicture,
+            },
+            createdAt: ride.createdAt,
+          };
         })
-        .map((ride) => ({
-          _id: ride._id,
-          pickupAddress: ride.pickupAddress,
-          destinationAddress: ride.destinationAddress,
-          distance: ride.distance,
-          passengerNum: ride.passengerNum,
-          calculatedPrice: ride.calculatedPrice,
-          desiredPrice: ride.desiredPrice,
-          rideOption: ride.rideOption,
-          paymentMethod: ride.paymentMethod,
-          pickupCoordinates: ride.pickupCoordinates,
-          destinationCoordinates: ride.destinationCoordinates,
-          client: {
-            _id: ride.client._id,
-            firstName: ride.clientId.firstName,
-            lastName: ride.clientId.lastName,
-            email: ride.clientId.email,
-            phoneNumber: ride.client.phoneNumber,
-            profilePicture: ride.client.profilePicture,
-          },
-          createdAt: ride.createdAt,
-        }));
-
-      res.status(200).json(nearbyRides);
+      );
+  
+      // Filter out null values (rides that didn't meet criteria)
+      const filteredRides = nearbyRides.filter((ride) => ride !== null);
+  
+      res.status(200).json(rides); // Send filtered rides
     } catch (error) {
       console.error("Error fetching available rides:", error.message);
       res.status(500).json({ error: "Failed to fetch available rides" });
     }
   });
 
-  // Driver submits an offer (accept or negotiate)
-  erideRouter.post("/:rideId/offer", verifyToken, async (req, res) => {
-    const driverId = req.user?.id || req.user?._id; ;
-    const { rideId } = req.params;
-    const { offeredPrice } = req.body;
 
-    try {
-      const ride = await Ride.findById(rideId);
-      if (!ride || ride.status !== "pending" || ride.driverId) {
-        return res.status(400).json({ error: "Ride not available" });
-      }
 
-      const driverProfile = await Profile.findOne({ userId: driverId });
-      if (!driverProfile || driverProfile.role !== "driver") {
-        return res.status(403).json({ error: "Invalid driver" });
-      }
 
-      const driver = await User.findById(driverId);
-      if (!driver) return res.status(404).json({ error: "Driver not found" });
+  // // Driver submits an offer (accept or negotiate)
+  // erideRouter.post("/:rideId/offer", verifyToken, async (req, res) => {
+  //   try {
+  //     const { offeredPrice } = req.body;
+  //     const user = await User.findOne({ _id: req.user?.id || req.user?._id });
+  //     if (!user || user.role !== "driver") {
+  //       return res.status(403).json({ error: "Invalid driver" });
+  //     }
+  
+  //     const ride = await Ride.findById(req.params.rideId);
+  //     if (!ride || ride.status !== "pending" || ride.driverId) {
+  //       return res.status(400).json({ error: "Ride not available" });
+  //     }
+  
+  //     const driver = await Profile.findOne({ userId: user._id });
+  //     if (!driver) {
+  //       return res.status(404).json({ error: "Driver profile not found" });
+  //     }
+  
+  //     // Validate offeredPrice
+  //     if (!offeredPrice || isNaN(parseFloat(offeredPrice)) || parseFloat(offeredPrice) <= 0) {
+  //       return res.status(400).json({ error: "Invalid offered price" });
+  //     }
+  
+  //     // Update ride with driver's offer
+  //     ride.driverOffers = ride.driverOffers || [];
+  //     ride.driverOffers.push({
+  //       driver: user._id, // Use ObjectId reference
+  //       offeredPrice: parseFloat(offeredPrice),
+  //       status: "pending",
+  //     });
+  
+  //     await ride.save();
+      
+  //     // Emit Socket.IO event to client
+  //     const io = req.app.get('socketio');
+  //     io.to(ride.clientId.toString()).emit("driverOffer", {
+  //       rideId: ride._id,
+  //       driver: {
+  //         _id: user._id,
+  //         firstName: driver.userId.firstName,
+  //         lastName: driver.userId.lastName,
+  //         profilePicture: driver.profilePicture,
+  //         carDetails: driver.carDetails,
+  //         phoneNumber: driver.phoneNumber,
+  //         rating: driver.rating,
+  //         distance: "5 km", // Replace with actual calculation
+  //       },
+  //       offeredPrice: parseFloat(offeredPrice),
+   
+  //       status: "pending",
+  //     });
+  
+    
+  
+  //     res.status(200).json({ message: "Offer submitted successfully" });
+  //   } catch (error) {
+  //     console.error("Error submitting offer:", error.message);
+  //     res.status(500).json({ error: "Failed to submit offer" });
+  //   }
+  // });
 
-      if (!ride.interestedDrivers.includes(driverProfile._id)) {
-        ride.interestedDrivers.push(driverProfile._id);
-      }
+  // erideRouter.post("/:rideId/reject", verifyToken, async (req, res) => {
+  //   try {
+  //     const user = await User.findOne({ _id: req.user?.id || req.user?._id });
+  //     if (!user || user.role !== "driver") {
+  //       return res.status(403).json({ error: "Invalid driver" });
+  //     }
+  
+  //     const ride = await Ride.findById(req.params.rideId);
+  //     if (!ride || ride.status !== "pending" || ride.driverId) {
+  //       return res.status(400).json({ error: "Ride not available" });
+  //     }
+  
+  //     // Mark offer as rejected (if tracking offers)
+  //     ride.offers = ride.driverOffers || [];
+  //     ride.offers.push({
+  //       driverId: user._id,
+  //       offeredPrice: null,
+  //       status: "rejected",
+  //     });
+  
+  //     await ride.save();
+  
+  //     // Emit Socket.IO event to client
+  //     const io = req.app.get('socketio');
+  //     io.to(ride.clientId.toString()).emit("driverRejected", {
+  //       rideId: ride._id,
+  //       driverId: user._id,
+  //     });
+  
+  //     res.status(200).json({ message: "Ride rejected successfully" });
+  //   } catch (error) {
+  //     console.error("Error rejecting ride:", error.message);
+  //     res.status(500).json({ error: "Failed to reject ride" });
+  //   }
+  // });
 
-      const offer = {
-        driver: driverProfile._id,
-        offeredPrice: offeredPrice || ride.calculatedPrice,
-        status: "pending",
-        timestamp: new Date(),
-      };
-      ride.driverOffers.push(offer);
-      await ride.save();
 
-      const driverData = {
-        rideId,
-        driver: {
-          _id: driverProfile._id,
-          firstName: driver.firstName,
-          lastName: driver.lastName,
-          email: driver.email,
-          phoneNumber: driverProfile.phoneNumber,
-          profilePicture: driverProfile.profilePicture,
-          carDetails: driverProfile.carDetails,
-          rating: driverProfile.rating || 4.5,
-          rideCount: driverProfile.rideCount || 0,
-        },
-        offeredPrice: offer.offeredPrice,
-      };
 
-      io.to(ride.client.toString()).emit("driverOffer", driverData);
-      res.status(200).json({ message: "Offer submitted", offer });
-    } catch (error) {
-      console.error("Error submitting offer:", error.message);
-      res.status(500).json({ error: "Failed to submit offer" });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+// Driver submits an offer (accept or negotiate)
+erideRouter.post('/:rideId/offer', verifyToken, async (req, res) => {
+  try {
+    const { offeredPrice, action } = req.body; // Action: 'accepted' or 'negotiated'
+    const user = await User.findOne({ _id: req.user?.id || req.user?._id });
+    if (!user || user.role !== 'driver') {
+      return res.status(403).json({ error: 'Invalid driver' });
     }
-  });
 
-  // Client confirms a driver
-  erideRouter.post("/:rideId/confirm-driver", verifyToken, async (req, res) => {
-    const { rideId } = req.params;
-    const { driverId } = req.body;
-    const passengerId = req.user?.id || req.user?._id; ;
-
-    try {
-      const ride = await Ride.findById(rideId).populate("driverOffers.driver");
-      if (!ride) return res.status(404).json({ error: "Ride not found" });
-
-      const passengerProfile = await Profile.findOne({ userId: passengerId });
-      if (!passengerProfile || ride.client.toString() !== passengerProfile._id.toString()) {
-        return res.status(403).json({ error: "Unauthorized to confirm this ride" });
-      }
-
-      if (ride.status !== "pending") {
-        return res.status(400).json({ error: "Ride is not pending" });
-      }
-
-      const offer = ride.driverOffers.find((o) => o.driver._id.toString() === driverId);
-      if (!offer) return res.status(404).json({ error: "Driver offer not found" });
-
-      const driverUser = await User.findById(driverId);
-      if (!driverUser) return res.status(404).json({ error: "Driver not found" });
-
-      ride.driverId = driverUser._id;
-      ride.driver = offer.driver._id;
-      ride.status = "accepted";
-      ride.finalPrice = offer.offeredPrice;
-      offer.status = "accepted";
-      ride.driverOffers.forEach((o) => {
-        if (o.driver.toString() !== driverId) o.status = "rejected";
-      });
-
-      const distance = calculateDistance(
-        ride.pickupCoordinates.lat,
-        ride.pickupCoordinates.lng,
-        ride.destinationCoordinates.lat,
-        ride.destinationCoordinates.lng
-      );
-      ride.eta = calculateETA(distance);
-      await ride.save();
-
-      const passengerData = {
-        _id: passengerProfile._id,
-        firstName: passengerProfile.firstName || passengerProfile.clientId?.firstName,
-        lastName: passengerProfile.lastName || passengerProfile.clientId?.lastName,
-        email: passengerProfile.clientId?.email,
-        phoneNumber: passengerProfile.phoneNumber,
-        profilePicture: passengerProfile.profilePicture,
-        pickupCoordinates: ride.pickupCoordinates,
-        destinationCoordinates: ride.destinationCoordinates,
-        rideId: ride._id,
-        status: ride.status,
-        eta: ride.eta,
-        distance,
-      };
-
-      const driverData = {
-        _id: offer.driver._id,
-        firstName: driverUser.firstName,
-        lastName: driverUser.lastName,
-        email: driverUser.email,
-        phoneNumber: offer.driver.phoneNumber,
-        profilePicture: offer.driver.profilePicture,
-        carDetails: offer.driver.carDetails || { model: "Toyota", year: 2020, plateNumber: "ABC123" },
-        rating: offer.driver.rating || 4.5,
-        rideCount: offer.driver.rideCount || 0,
-        distance,
-        eta: ride.eta,
-        finalPrice: ride.finalPrice,
-      };
-
-      io.to(ride._id.toString()).emit("rideConfirmed", { driver: driverData, passenger: passengerData });
-      io.to(driverId).emit("rideAccepted", { passenger: passengerData });
-      io.emit("rideStatusUpdate", { rideId, status: "accepted" });
-
-      res.status(200).json({ message: "Driver confirmed", finalPrice: ride.finalPrice, ride });
-    } catch (error) {
-      console.error("Error confirming driver:", error.message);
-      res.status(500).json({ error: "Failed to confirm driver" });
+    const ride = await Ride.findById(req.params.rideId).populate('clientId', 'firstName lastName email phoneNumber profilePicture');
+    if (!ride || ride.status !== 'pending' || ride.driverId) {
+      return res.status(400).json({ error: 'Ride not available' });
     }
-  });
 
-  // Client rejects a driver’s offer
-  erideRouter.post("/:rideId/reject-driver", verifyToken, async (req, res) => {
-    const { rideId } = req.params;
-    const { driverId } = req.body;
-    const passengerId = req.user?.id || req.user?._id; ;
-
-    try {
-      const ride = await Ride.findById(rideId).populate("driverOffers.driver");
-      if (!ride) return res.status(404).json({ error: "Ride not found" });
-
-      const passengerProfile = await Profile.findOne({ userId: passengerId });
-      if (!passengerProfile || ride.client.toString() !== passengerProfile._id.toString()) {
-        return res.status(403).json({ error: "Unauthorized to reject this driver" });
-      }
-
-      if (ride.status !== "pending") {
-        return res.status(400).json({ error: "Ride is not pending" });
-      }
-
-      const offer = ride.driverOffers.find((o) => o.driver._id.toString() === driverId);
-      if (!offer) return res.status(404).json({ error: "Driver offer not found" });
-
-      offer.status = "rejected";
-      ride.interestedDrivers = ride.interestedDrivers.filter((id) => id.toString() !== driverId);
-      await ride.save();
-
-      io.to(driverId).emit("driverRejected", { rideId });
-      io.to(ride._id.toString()).emit("driverOfferRejected", { driverId });
-
-      res.status(200).json({ message: "Driver offer rejected" });
-    } catch (error) {
-      console.error("Error rejecting driver:", error.message);
-      res.status(500).json({ error: "Failed to reject driver" });
+    const driver = await Profile.findOne({ userId: user._id });
+    if (!driver) {
+      return res.status(404).json({ error: 'Driver profile not found' });
     }
-  });
+
+    // Check if driver has already acted
+    const hasActed = ride.driverOffers.some((offer) => offer.driver.toString() === user._id.toString());
+    if (hasActed) {
+      return res.status(400).json({ error: 'You have already acted on this ride' });
+    }
+
+    // Validate action and offeredPrice
+    if (!['accepted', 'negotiated'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action' });
+    }
+    if (!offeredPrice || isNaN(parseFloat(offeredPrice)) || parseFloat(offeredPrice) <= 0) {
+      return res.status(400).json({ error: 'Invalid offered price' });
+    }
+    if (action === 'accepted' && parseFloat(offeredPrice) !== ride.calculatedPrice) {
+      return res.status(400).json({ error: 'Offered price must match calculated price for acceptance' });
+    }
+
+    // Update ride with driver's offer
+    ride.driverOffers = ride.driverOffers || [];
+    ride.driverOffers.push({
+      driver: user._id,
+      offeredPrice: parseFloat(offeredPrice),
+      status: 'pending',
+    });
+
+    // Add to interestedDrivers
+    ride.interestedDrivers = ride.interestedDrivers || [];
+    ride.interestedDrivers.push({
+      driverId: user._id,
+      action,
+      offeredPrice: parseFloat(offeredPrice),
+      timestamp: new Date(),
+    });
+
+    await ride.save();
+
+    // Emit Socket.IO event to client
+    const io = req.app.get('socketio');
+    io.to(ride.clientId.toString()).emit('driverOffer', {
+      rideId: ride._id,
+      driver: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profilePicture: driver.profilePicture,
+        carDetails: driver.carDetails,
+        phoneNumber: user.phoneNumber,
+        rating: driver.rating,
+        distance: calculateDistance(driver, ride), // Replace with actual calculation
+      },
+      offeredPrice: parseFloat(offeredPrice),
+      action, // Include action for frontend
+      status: 'pending',
+    });
+
+    res.status(200).json({ message: 'Offer submitted successfully' });
+  } catch (error) {
+    console.error('Error submitting offer:', error.message);
+    res.status(500).json({ error: 'Failed to submit offer' });
+  }
+});
+
+// Driver rejects a ride
+erideRouter.post('/:rideId/reject', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findOne({ _id: req.user?.id || req.user?._id });
+    if (!user || user.role !== 'driver') {
+      return res.status(403).json({ error: 'Invalid driver' });
+    }
+
+    const ride = await Ride.findById(req.params.rideId);
+    if (!ride || ride.status !== 'pending' || ride.driverId) {
+      return res.status(400).json({ error: 'Ride not available' });
+    }
+
+    // Check if driver has already acted
+    const hasActed = ride.driverOffers.some((offer) => offer.driver.toString() === user._id.toString());
+    if (hasActed) {
+      return res.status(400).json({ error: 'You have already acted on this ride' });
+    }
+
+    // Add rejection to driverOffers
+    ride.driverOffers = ride.driverOffers || [];
+    ride.driverOffers.push({
+      driver: user._id,
+      offeredPrice: null, // Allowed by schema
+      status: 'rejected',
+    });
+
+    // Add to interestedDrivers
+    ride.interestedDrivers = ride.interestedDrivers || [];
+    ride.interestedDrivers.push({
+      driverId: user._id,
+      action: 'rejected',
+      offeredPrice: null,
+      timestamp: new Date(),
+    });
+
+    await ride.save();
+
+    // Emit Socket.IO event to driver (not client)
+    const io = req.app.get('socketio');
+    io.to(user._id.toString()).emit('driverRejected', {
+      rideId: ride._id,
+    });
+
+    res.status(200).json({ message: 'Ride rejected successfully' });
+  } catch (error) {
+    console.error('Error rejecting ride:', error.message);
+    res.status(500).json({ error: 'Failed to reject ride' });
+  }
+});
+
+
+
+
+
 
   // Driver starts the ride
   erideRouter.put("/:rideId/start", verifyToken, async (req, res) => {
@@ -491,6 +672,58 @@ export default (io) => {
     }
   });
 
+
+  //update driver location
+  // Update driver location
+erideRouter.post("/update-driver-location", verifyToken, async (req, res) => {
+  const { lat, lng } = req.body;
+  try {
+    const user = await User.findById(req.user?.id || req.user?._id);
+    if (!user || user.role !== "driver") {
+      return res.status(403).json({ error: "Invalid driver" });
+    }
+    const profile = await Profile.findOne({ userId: user._id });
+    if (!profile) {
+      return res.status(404).json({ error: "Profile not found" });
+    }
+    profile.location.coordinates = [lng, lat];
+    await profile.save();
+    res.status(200).json({ message: "Location updated" });
+  } catch (error) {
+    console.error("Error updating driver location:", error.message);
+    res.status(500).json({ error: "Failed to update location" });
+  }
+});
+
+// Driver ride history (modify existing /history endpoint to support drivers)
+erideRouter.get("/driverhistory", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user?.id || req.user?._id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const profile = await Profile.findOne({ userId: user._id });
+    if (!profile) return res.status(404).json({ error: "Profile not found" });
+    let rides;
+    if (user.role === "driver") {
+      rides = await Ride.find({ driver: profile._id })
+        .populate("clientId", "firstName lastName email")
+        .populate("client", "phoneNumber profilePicture")
+        .sort({ createdAt: -1 });
+    } else {
+      rides = await Ride.find({ client: profile._id })
+        .populate("clientId", "firstName lastName email")
+        .populate("client", "phoneNumber profilePicture")
+        .sort({ createdAt: -1 });
+    }
+    res.status(200).json({ rides });
+  } catch (error) {
+    console.error("Error fetching ride history:", error.message);
+    res.status(500).json({ error: "Failed to fetch ride history" });
+  }
+});
+
+
+
+
   // Chat between driver and client
   erideRouter.post("/:rideId/chat", verifyToken, async (req, res) => {
     const { rideId } = req.params;
@@ -524,7 +757,7 @@ export default (io) => {
         sender: {
           _id: profile._id,
           firstName: profile.firstName || profile.userId?.firstName,
-          role: profile.role,
+          role: profile.role || profile.userId?.role,
         },
         text,
         timestamp: message.timestamp,
@@ -612,6 +845,47 @@ export default (io) => {
     }
   });
 
+ // Get interested drivers for a ride
+ erideRouter.get("/:rideId/interested-drivers", verifyToken, async (req, res) => {
+  const { rideId } = req.params;
+  const userId = req.user?.id || req.user?._id; ;
+
+  try {
+    const ride = await Ride.findById(rideId).populate("driverOffers.driver");
+    if (!ride) return res.status(404).json({ error: "Ride not found" });
+
+    const passengerProfile = await Profile.findOne({ userId });
+    if (!passengerProfile || ride.client.toString() !== passengerProfile._id.toString()) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const driverDetails = await Promise.all(
+      ride.driverOffers.map(async (offer) => {
+        const driverUser = await User.findById(offer.driver.userId);
+        return {
+          _id: offer.driver._id,
+          firstName: driverUser.firstName,
+          lastName: driverUser.lastName,
+          email: driverUser.email,
+          phoneNumber: offer.driver.phoneNumber,
+          profilePicture: offer.driver.profilePicture,
+          carDetails: offer.driver.carDetails,
+          rating: offer.driver.rating || 4.5,
+          rideCount: offer.driver.rideCount || 0,
+          offeredPrice: offer.offeredPrice,
+          offerStatus: offer.status,
+          timestamp: offer.timestamp,
+        };
+      })
+    );
+
+    res.status(200).json({ message: "Interested drivers fetched", drivers: driverDetails });
+  } catch (error) {
+    console.error("Error fetching interested drivers:", error.message);
+    res.status(500).json({ error: "Failed to fetch interested drivers" });
+  }
+});
+
   // Get ride history for user (client or driver)
   erideRouter.get("/history", verifyToken, async (req, res) => {
     const userId = req.user.id;
@@ -682,93 +956,100 @@ export default (io) => {
     }
   });
 
-  // Get interested drivers for a ride
-  erideRouter.get("/:rideId/interested-drivers", verifyToken, async (req, res) => {
-    const { rideId } = req.params;
-    const userId = req.user?.id || req.user?._id; ;
-
-    try {
-      const ride = await Ride.findById(rideId).populate("driverOffers.driver");
-      if (!ride) return res.status(404).json({ error: "Ride not found" });
-
-      const passengerProfile = await Profile.findOne({ userId });
-      if (!passengerProfile || ride.client.toString() !== passengerProfile._id.toString()) {
-        return res.status(403).json({ error: "Unauthorized" });
-      }
-
-      const driverDetails = await Promise.all(
-        ride.driverOffers.map(async (offer) => {
-          const driverUser = await User.findById(offer.driver.userId);
-          return {
-            _id: offer.driver._id,
-            firstName: driverUser.firstName,
-            lastName: driverUser.lastName,
-            email: driverUser.email,
-            phoneNumber: offer.driver.phoneNumber,
-            profilePicture: offer.driver.profilePicture,
-            carDetails: offer.driver.carDetails,
-            rating: offer.driver.rating || 4.5,
-            rideCount: offer.driver.rideCount || 0,
-            offeredPrice: offer.offeredPrice,
-            offerStatus: offer.status,
-            timestamp: offer.timestamp,
-          };
-        })
-      );
-
-      res.status(200).json({ message: "Interested drivers fetched", drivers: driverDetails });
-    } catch (error) {
-      console.error("Error fetching interested drivers:", error.message);
-      res.status(500).json({ error: "Failed to fetch interested drivers" });
-    }
-  });
-
+ 
   // Get driver statistics (completed rides, rejected rides, earnings, platform fee, income)
-  erideRouter.get("/driver/:driverId/stats", verifyToken, async (req, res) => {
+  erideRouter.get('/driver/:driverId/stats', verifyToken, async (req, res) => {
     const { driverId } = req.params;
-    const userId =req.user?.id || req.user?._id; 
+    const userId = req.user?.id || req.user?._id;
     try {
       // Verify the requesting user is the driver
       const userProfile = await User.findOne({ _id: userId });
-      if (!userProfile || userProfile.role !== "driver") {
-        return res.status(403).json({ error: "Invalid driver" });
-      }
-
-      const profile = await Profile.findOne({ userId: userProfile._id });
-      if (!profile) {
-        return res.status(404).json({ error: "Profile not found" });
-      }
-
-      if (profile._id.toString() !== driverId) {
-        return res.status(403).json({ error: "Unauthorized: Invalid client ID" });
+      if (!userProfile || userProfile.role !== 'driver') {
+        return res.status(403).json({ error: 'Invalid driver' });
       }
   
-      // Query rides for the driver
-      const rides = await Ride.find({ driverId: profile._id }).select("status desiredPrice");
-
+      const profile = await Profile.findOne({ userId: userProfile._id });
+      if (!profile) {
+        return res.status(404).json({ error: 'Profile not found' });
+      }
+  
+      if (profile._id.toString() !== driverId) {
+        return res.status(403).json({ error: 'Unauthorized: Invalid driver ID' });
+      }
+  
+      // Query rides where driver was assigned or made an offer
+      const rides = await Ride.find({
+        $or: [
+          { driverId: profile._id },
+          { 'driverOffers.driver': profile._id },
+        ],
+      }).select('status driverId driverOffers interestedDrivers');
+  
       // Calculate statistics
-      const completedRides = rides.filter((ride) => ride.status === "completed").length;
-      const rejectedRides = rides.filter((ride) => ride.status === "rejected").length;
-      const totalEarnings = rides
-        .filter((ride) => ride.status === "completed")
-        .reduce((sum, ride) => sum + (ride.desiredPrice || 0), 0);
-      const platformFee = totalEarnings * 0.1; // 10% of total earnings
+      const totalRides = rides.filter((ride) => ride.driverId && ride.driverId.toString() === profile._id.toString()).length;
+  
+      const completedRides = rides.filter(
+        (ride) => ride.driverId && ride.driverId.toString() === profile._id.toString() && ride.status === 'completed'
+      ).length;
+  
+      const cancelledRides = rides.filter(
+        (ride) => ride.driverId && ride.driverId.toString() === profile._id.toString() && ride.status === 'cancelled'
+      ).length;
+  
+      let acceptedRides = 0;
+      let negotiatedRides = 0;
+      let rejectedRides = 0;
+      let totalEarnings = 0;
+  
+      rides.forEach((ride) => {
+        const driverOffer = ride.driverOffers.find(
+          (offer) => offer.driver.toString() === profile._id.toString()
+        );
+        const interestedDriver = ride.interestedDrivers.find(
+          (entry) => entry.driverId.toString() === profile._id.toString()
+        );
+  
+        if (driverOffer) {
+          if (driverOffer.status === 'accepted' && interestedDriver) {
+            if (interestedDriver.action === 'accepted') {
+              acceptedRides++;
+            } else if (interestedDriver.action === 'negotiated') {
+              negotiatedRides++;
+            }
+            // Earnings from completed rides with accepted offers
+            if (ride.status === 'completed' && ride.driverId.toString() === profile._id.toString()) {
+              totalEarnings += driverOffer.offeredPrice || 0;
+            }
+          } else if (driverOffer.status === 'rejected') {
+            rejectedRides++;
+          }
+        }
+      });
+  
+      const platformFee = totalEarnings * 0.2; // 20% platform fee
       const income = totalEarnings - platformFee; // Driver's net income
-
+  
       const stats = {
+        totalRides,
         completedRides,
+        acceptedRides,
+        negotiatedRides,
         rejectedRides,
+        cancelledRides,
         totalEarnings,
         platformFee,
         income,
       };
-
-      res.status(200).json({ message: "Driver statistics fetched", stats });
+  
+      res.status(200).json({ message: 'Driver statistics fetched', stats });
     } catch (error) {
-      console.error("Error fetching driver statistics:", error.message);
-      res.status(500).json({ error: "Failed to fetch driver statistics" });
+      console.error('Error fetching driver statistics:', error.message);
+      res.status(500).json({ error: 'Failed to fetch driver statistics' });
     }
   });
+  
+
+ 
 
 
   erideRouter.get("/client/:clientId/stats", verifyToken, async (req, res) => {
@@ -821,5 +1102,185 @@ export default (io) => {
       res.status(500).json({ error: "Failed to fetch client statistics" });
     }
   });
+
+
+  
+erideRouter.get('/ride-statistics', verifyToken,  async (req, res) => {
+  try {
+    // Aggregation for clients
+    const clientStats = await Ride.aggregate([
+      {
+        $match: {
+          status: { $in: ['pending', 'completed', 'cancelled'] },
+          clientId: { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: { status: '$status' },
+          count: { $sum: 1 },
+          totalAmount: {
+            $sum: { $cond: [{ $eq: ['$finalPrice', null] }, 0, '$finalPrice'] },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          status: '$_id.status',
+          count: 1,
+          totalAmount: 1,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          stats: { $push: { status: '$status', count: '$count', totalAmount: '$totalAmount' } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          pending: {
+            $arrayElemAt: [
+              { $filter: { input: '$stats', cond: { $eq: ['$$this.status', 'pending'] } } },
+              0,
+            ],
+          },
+          completed: {
+            $arrayElemAt: [
+              { $filter: { input: '$stats', cond: { $eq: ['$$this.status', 'completed'] } } },
+              0,
+            ],
+          },
+          cancelled: {
+            $arrayElemAt: [
+              { $filter: { input: '$stats', cond: { $eq: ['$$this.status', 'cancelled'] } } },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $project: {
+          pending: {
+            count: { $ifNull: ['$pending.count', 0] },
+            totalAmount: { $ifNull: ['$pending.totalAmount', 0] },
+          },
+          completed: {
+            count: { $ifNull: ['$completed.count', 0] },
+            totalAmount: { $ifNull: ['$completed.totalAmount', 0] },
+          },
+          cancelled: {
+            count: { $ifNull: ['$cancelled.count', 0] },
+            totalAmount: { $ifNull: ['$cancelled.totalAmount', 0] },
+          },
+        },
+      },
+    ]);
+
+    // Aggregation for drivers
+    const driverStats = await Ride.aggregate([
+      {
+        $match: {
+          status: { $in: ['pending', 'completed', 'cancelled'] },
+          driverId: { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: { status: '$status' },
+          count: { $sum: 1 },
+          totalAmount: {
+            $sum: { $cond: [{ $eq: ['$finalPrice', null] }, 0, '$finalPrice'] },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          status: '$_id.status',
+          count: 1,
+          totalAmount: 1,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          stats: { $push: { status: '$status', count: '$count', totalAmount: '$totalAmount' } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          pending: {
+            $arrayElemAt: [
+              { $filter: { input: '$stats', cond: { $eq: ['$$this.status', 'pending'] } } },
+              0,
+            ],
+          },
+          completed: {
+            $arrayElemAt: [
+              { $filter: { input: '$stats', cond: { $eq: ['$$this.status', 'completed'] } } },
+              0,
+            ],
+          },
+          cancelled: {
+            $arrayElemAt: [
+              { $filter: { input: '$stats', cond: { $eq: ['$$this.status', 'cancelled'] } } },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $project: {
+          pending: {
+            count: { $ifNull: ['$pending.count', 0] },
+            totalAmount: { $ifNull: ['$pending.totalAmount', 0] },
+          },
+          completed: {
+            count: { $ifNull: ['$completed.count', 0] },
+            totalAmount: { $ifNull: ['$completed.totalAmount', 0] },
+          },
+          cancelled: {
+            count: { $ifNull: ['$cancelled.count', 0] },
+            totalAmount: { $ifNull: ['$cancelled.totalAmount', 0] },
+          },
+        },
+      },
+    ]);
+
+    // Combine results
+    const result = {
+      clients: clientStats[0] || {
+        pending: { count: 0, totalAmount: 0 },
+        completed: { count: 0, totalAmount: 0 },
+        cancelled: { count: 0, totalAmount: 0 },
+      },
+      drivers: driverStats[0] || {
+        pending: { count: 0, totalAmount: 0 },
+        completed: { count: 0, totalAmount: 0 },
+        cancelled: { count: 0, totalAmount: 0 },
+      },
+    };
+
+    console.log('Ride statistics retrieved:', result);
+
+    res.status(200).json({
+      status: true,
+      message: 'Ride statistics retrieved successfully',
+      data: result,
+    });
+  } catch (error) {
+    console.error('Error retrieving ride statistics:', error.stack);
+    res.status(500).json({
+      status: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'production' ? null : error.message,
+    });
+  }
+});
+
   return erideRouter;
 };

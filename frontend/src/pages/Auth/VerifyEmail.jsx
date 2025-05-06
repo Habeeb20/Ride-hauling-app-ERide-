@@ -73,6 +73,7 @@ const EmailVerify = () => {
       const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/verify-email`, { email, code: otpCode }, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log(response.data.user)
       if (response.data.success) {
         if (response.data.token) {
           localStorage.setItem("token", response.data.token);
@@ -80,7 +81,12 @@ const EmailVerify = () => {
         toast.success("Email verified successfully! Redirecting to profile creation page...", {
           style: { background: "#4CAF50", color: "white" },
         });
-        navigate(`/profileform?email=${encodeURIComponent(email)}&role=${encodeURIComponent(role)}`);
+        if(response.data.user.role === "admin"){
+          navigate('/login')
+        } else {
+          navigate(`/profileform?email=${encodeURIComponent(email)}&role=${encodeURIComponent(role)}`);
+        }
+      
       } else {
         throw new Error(response.data.message || "Invalid or expired verification code");
       }

@@ -10,7 +10,7 @@ import Ride from "../../model/ride/rideSchema.js"
 import express from "express"
 import { verifyToken } from "../../middleware/verifyToken.js"
 import { v4 as uuidv4 } from 'uuid';
-
+import mongoose from "mongoose"
 dotenv.config()
 
 
@@ -18,7 +18,8 @@ const isAdmin = (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Authentication required' });
     }
-    if (req.user.role?.toLowerCase() !== 'admin') {
+    console.log(req?.user?.role)
+    if (req.user?.role?.toLowerCase() !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admins only.' });
     }
     next();
@@ -176,6 +177,7 @@ authRouter.post("/register", async(req, res) => {
           status: true,
           message: "Successfully registered. Please verify your email.",
           token,
+      
         });
       } catch (error) {
         console.error("Registration error:", error);
@@ -215,7 +217,7 @@ authRouter.post("/verify-email", async(req, res) => {
           success: true,
           message: "Email verified successfully",
           token,
-          user: { id: user._id, email: user.email, isVerified: true },
+          user: { id: user._id, email: user.email, isVerified: true, role:user.role },
         });
       } catch (err) {
         console.error("Email verification error:", err);
@@ -279,19 +281,17 @@ authRouter.post("/login", async(req, res) => {
   
   
       const profile = await Profile.findOne({ userId: user._id });
-      if (!profile) {
+      if (!profile && user.role !== "admin") {
         return res.status(400).json({
           status: false,
           message: "Profile not found. Please complete your profile or register with another mail.",
         });
-      }
-  
+      } 
       const payload =  {id: user._id  };
       const token = jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: "7d",
       });
-  
-   console.log(token)
+
 
    let roleMessage= "";
    switch (user.role) {
@@ -384,7 +384,7 @@ authRouter.get("/dashboard", verifyToken, async(req, res) => {
   
       const profile = await Profile.findOne({ userId: user._id }).populate(
         "userId",
-        "firstName lastName email"
+        "firstName lastName email role"
       );
       if (!profile) {
         console.log("Profile not found for user ID:", user._id);
@@ -411,65 +411,65 @@ authRouter.get("/dashboard", verifyToken, async(req, res) => {
 })
 
 
-
-authRouter.put("/verify-user/:id", verifyToken, isAdmin, async(req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        if (!user) {
-          console.log("user not found")
-          return res.status(404).json({
-            status: false,
-            message: "User not found",
-            data: null,
-          });
-        }
-       // Check if the user is an driver
-       if (user.role !== "driver" || user.role !== "client") {
-        return res.status(400).json({
-          status: false,
-          message: "User is neither a driver not a client",
-          data: null,
-        });
-      }
-  
-      // Check if already verified
-      if (user.verificationStatus === "verified") {
-        return res.status(400).json({
-          status: false,
-          message: "Errander is already verified",
-          data: null,
-        });
-      }
-
-      user.verificationStatus = "verified";
-      await user.save()
-
-
-      const profile = await Profile.findOne({ userId: req.params.id }).populate('userId');
-      if (!profile) {
-        return res.status(404).json({
-          status: false,
-          message: "Profile not found for this user",
-          data: null,
-        });
-      }
-      
-      res.status(200).json({
-        status: true,
-        message: "verified successfully",
-        data: profile, // Includes populated userId with updated verificationStatus
+authRouter.put('/verify-user/:id', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      console.log('User not found for ID:', req.params.id);
+      return res.status(404).json({
+        status: false,
+        message: 'User not found',
+        data: null,
       });
-  
-    } catch (error) {
-        console.error("Error verifying errander:", error.stack);
-        res.status(500).json({
-          status: false,
-          message: "Server error",
-          error: process.env.NODE_ENV === "production" ? null : error.message,
-        });
     }
-})
 
+    // Check if the user is a driver or client
+    if (!['driver', 'client'].includes(user.role)) {
+      console.log('Invalid role for verification:', user.role);
+      return res.status(400).json({
+        status: false,
+        message: 'User is neither a driver nor a client',
+        data: null,
+      });
+    }
+
+    // Check if already verified
+    if (user.verificationStatus === 'verified') {
+      console.log('User already verified:', user.email);
+      return res.status(400).json({
+        status: false,
+        message: 'User is already verified',
+        data: null,
+      });
+    }
+
+    user.verificationStatus = 'verified';
+    await user.save();
+
+    const profile = await Profile.findOne({ userId: req.params.id }).populate('userId');
+    if (!profile) {
+      console.log('Profile not found for user ID:', req.params.id);
+      return res.status(404).json({
+        status: false,
+        message: 'Profile not found for this user',
+        data: null,
+      });
+    }
+
+    res.status(200).json({
+      status: true,
+      message: 'User verified successfully',
+      data: profile, // Includes populated userId with updated verificationStatus
+    });
+  } catch (error) {
+    console.error('Error verifying user:', error.stack);
+    res.status(500).json({
+      status: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'production' ? null : error.message,
+    });
+  }
+});
 
 authRouter.get("/users", async(req, res) =>{
     try {
@@ -530,6 +530,31 @@ authRouter.get("/users", async(req, res) =>{
       }
 })
 
+
+
+
+
+authRouter.get('/allusers', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const users = await User.find({ role: { $nin: ['admin'] } })
+      .select('firstName lastName email role');
+    
+    console.log('Fetched non-admin users:', users.length);
+
+    return res.status(200).json({
+      status: true,
+      message: 'All non-admin users',
+      data: users,
+    });
+  } catch (error) {
+    console.error('Error in /allusers:', error.message);
+    return res.status(500).json({
+      status: false,
+      message: 'Server error',
+      error: error.message,
+    });
+  }
+});
 
 authRouter.get("/drivers", async (req, res) => {
   try {
@@ -698,6 +723,7 @@ authRouter.get("/clients", async (req, res) => {
       status: true,
       message: driversWithStats.length > 0 ? "clients retrieved successfully" : "No client found",
       data: driversWithStats,
+      profiles
     });
   } catch (error) {
     console.error("Error fetching drivers:", error.stack);
@@ -710,68 +736,82 @@ authRouter.get("/clients", async (req, res) => {
 
 
 
-authRouter.put("/blacklist-user/:id", verifyToken, isAdmin, async (req, res) => {
-    try {
-      // Find the user by ID
-      const user = await User.findById(req.params.id);
-      if (!user) {
-        return res.status(404).json({
-          status: false,
-          message: "User not found",
-          data: null,
-        });
-      }
-  
-      // Check if the user is an errander
-      if (user.role !== "driver" || user.role !== "client") {
-        return res.status(400).json({
-          status: false,
-          message: "User is neither a driver nor a client",
-          data: null,
-        });
-      }
-  
-      // Find the corresponding Profile document
-      const profile = await Profile.findOne({ userId: req.params.id });
-      if (!profile) {
-        return res.status(404).json({
-          status: false,
-          message: "Profile not found for this user",
-          data: null,
-        });
-      }
-  
-      // Check if already blacklisted
-      if (profile.isBlacklisted) {
-        return res.status(400).json({
-          status: false,
-          message: "user is already blacklisted",
-          data: null,
-        });
-      }
-  
-      // Update blacklist status
-      profile.isBlacklisted = true;
-      await profile.save();
-  
-      // Populate userId for the response
-      const updatedProfile = await Profile.findOne({ userId: req.params.id }).populate('userId');
-  
-      res.status(200).json({
-        status: true,
-        message: "user blacklisted successfully",
-        data: updatedProfile,
-      });
-    } catch (error) {
-      console.error("Error blacklisting errander:", error.stack);
-      res.status(500).json({
+authRouter.put('/blacklist-user/:id', verifyToken, isAdmin, async (req, res) => {
+  try {
+    // Validate ObjectId
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      console.log('Invalid user ID:', req.params.id);
+      return res.status(400).json({
         status: false,
-        message: "Server error",
-        error: process.env.NODE_ENV === "production" ? null : error.message,
+        message: 'Invalid user ID',
+        data: { userId: req.params.id },
       });
     }
-  });
-  
+
+    // Find the user by ID
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      console.log('User not found for ID:', req.params.id);
+      return res.status(404).json({
+        status: false,
+        message: 'User not found',
+        data: { userId: req.params.id },
+      });
+    }
+
+    // Check if the user is a driver or client
+    if (!['driver', 'client'].includes(user.role)) {
+      console.log('Invalid role for blacklisting:', user.role);
+      return res.status(400).json({
+        status: false,
+        message: 'User is neither a driver nor a client',
+        data: { userId: req.params.id },
+      });
+    }
+
+    // Find the corresponding Profile document
+    const profile = await Profile.findOne({ userId: req.params.id });
+    if (!profile) {
+      console.log('Profile not found for user ID:', req.params.id);
+      return res.status(404).json({
+        status: false,
+        message: 'Profile not found for this user',
+        data: { userId: req.params.id },
+      });
+    }
+
+    // Check if already blacklisted
+    if (profile.isBlacklisted) {
+      console.log('User already blacklisted:', user.email);
+      return res.status(400).json({
+        status: false,
+        message: 'User is already blacklisted',
+        data: { userId: req.params.id },
+      });
+    }
+
+    // Update blacklist status
+    profile.isBlacklisted = true;
+    await profile.save();
+    console.log('User blacklisted:', user.email);
+
+    // Populate userId for the response
+    await profile.populate('userId');
+
+    res.status(200).json({
+      status: true,
+      message: 'User blacklisted successfully',
+      data: profile,
+    });
+  } catch (error) {
+    console.error('Error blacklisting user:', error.stack);
+    res.status(500).json({
+      status: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'production' ? null : error.message,
+    });
+  }
+});
   // Unblacklist an errander
 authRouter.put("/unblacklist-errander/:id", verifyToken, isAdmin, async (req, res) => {
     try {
@@ -829,7 +869,60 @@ authRouter.put("/unblacklist-errander/:id", verifyToken, isAdmin, async (req, re
     }
   });
   
+authRouter.put("/verify-errander/:id", verifyToken, isAdmin, async(req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+    if(!user){
+      console.log("user not found")
+      return res.status(404).json({
+        status: false,
+        message: "user not found",
+        data: null
+      })
+    }
 
+    if(user.role !== "driver" || user.role !== "client"){
+      return res.status(400).json({
+        status: false,
+        message: "user is neither a driver nor a client",
+        data: null
+      })
+    }
+
+    if(user.verificationStatus === "verified"){
+      return res.status(400).json({
+        status: false,
+        message: "user is already verified",
+        data: null
+      })
+    }
+    
+    user.verificationStatus = "verified";
+    await user.save()
+
+    const profile = await Profile.findOne({userId: req.params.id}).populate('userId')
+    if (!profile) {
+      return res.status(404).json({
+        status: false,
+        message: "Profile not found for this user",
+        data: null,
+      });
+    }
+
+    res.status(200).json({
+      status: true,
+      message: "Errander verified successfully",
+      data: profile, 
+    });
+  } catch (error) {
+    console.error("Error verifying errander:", error.stack);
+    res.status(500).json({
+      status: false,
+      message: "Server error",
+      error: process.env.NODE_ENV === "production" ? null : error.message,
+    });
+  }
+})
 
 
 
