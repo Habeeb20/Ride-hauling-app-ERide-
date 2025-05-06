@@ -16,6 +16,7 @@ import schedule from "./model/ride/schedule.js";
 import ScheduleRoute from "./routes/rideRoutes/scheduleRoute.js";
 import rentalRoutes from "./routes/vehicle/rentalRoutes.js";
 import bodyParser from "body-parser";
+import reportRouter from "./routes/reportRoute/reportRoute.js";
 dotenv.config();
 
 const app = express();
@@ -77,6 +78,7 @@ app.use("/api/rides", rideRoute(io));
 app.use("/api/ownacar", OwnAcarRoute)
 app.use("/api/schedule", ScheduleRoute)
 app.use("/api/rental", rentalRoutes)
+app.use("/api/reports", reportRouter)
 
 
 app.use((err, req, res, next) => {

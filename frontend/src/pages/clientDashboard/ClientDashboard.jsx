@@ -148,7 +148,7 @@ const ClientDashboard = () => {
         {activeTab === 'Schedule' && <Schedule isDarkTheme={isDarkTheme} />}
         {activeTab === 'Dashboard' && <StatisticsContent isDarkTheme={isDarkTheme} />}
         {activeTab === 'Ride-Along' && <RideAlong isDarkTheme={isDarkTheme} />}
-        {activeTab === 'Report' && <ReportDriver isDarkTheme={isDarkTheme} />}
+        {activeTab === 'report' && <ReportDriver isDarkTheme={isDarkTheme} />}
         {activeTab === 'rent-vehicle' && <RegisterVehicle isDarkTheme={isDarkTheme} />}
         {activeTab === 'renting' && <OwnerDashboard isDarkTheme={isDarkTheme} />}
         {activeTab === 'Book' && <Ride isDarkTheme={isDarkTheme} />}
