@@ -37,11 +37,13 @@ const Signup = () => {
           role,
           password,
         },
-        { headers: { "Content-Type": "multipart/form-data" } }
+        { headers: { "Content-Type": "application/json" } }
       );
       if (response.data.status) {
         localStorage.setItem("token", response.data.token);
-        navigate(`/verifyemail?email=${encodeURIComponent(email)}&role=${encodeURIComponent(role)}`);
+
+     
+          navigate(`/verifyemail?email=${encodeURIComponent(email)}&role=${encodeURIComponent(role)}`);
         toast.success("Registration successful! Redirecting to verify email...", {
           style: { background: "#4CAF50", color: "white" },
         });

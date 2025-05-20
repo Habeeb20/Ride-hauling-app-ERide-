@@ -116,7 +116,7 @@ const EmailVerify = () => {
       toast.error("No authentication token found. Please log in again.", {
         style: { background: "#F44336", color: "white" },
       });
-      navigate("/plogin");
+      navigate("/login");
       return;
     }
 
