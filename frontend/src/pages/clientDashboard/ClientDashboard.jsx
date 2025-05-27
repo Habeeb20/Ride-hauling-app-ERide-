@@ -160,7 +160,7 @@ const ClientDashboard = () => {
     <>
       <Navbar toggleTheme={toggleTheme} isDarkTheme={isDarkTheme} profile={profile} />
     
-
+{/* 
    
       {isBackgroundOn ? (
         <div
@@ -179,7 +179,7 @@ const ClientDashboard = () => {
             className="w-74 h-min-screen object-contain opacity-50"
           />
         </div>
-      )} 
+      )}  */}
       <div  className={`flex min-h-screen font-sans ${isDarkTheme ? 'bg-gray-800' : 'bg-transparent'}`}
       style={{
         backgroundImage: isDarkTheme

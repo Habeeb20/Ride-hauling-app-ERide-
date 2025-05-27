@@ -87,8 +87,6 @@ const EmailVerify = () => {
           navigate(`/profileform?email=${encodeURIComponent(email)}&role=${encodeURIComponent(role)}`);
         }
       
-      } else {
-        throw new Error(response.data.message || "Invalid or expired verification code");
       }
     } catch (err) {
       console.log("Verification Error:", err);

@@ -126,7 +126,7 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="mt-4 text-center">
+          {/* <div className="mt-4 text-center">
             <p className="text-sm text-gray-600">or connect with</p>
             <div className="flex justify-center space-x-4 mt-2">
               <button
@@ -148,7 +148,7 @@ const Login = () => {
                 <FaTwitter size={20} />
               </button>
             </div>
-          </div>
+          </div> */}
 
           <p className="mt-4 text-center text-sm text-gray-600">
             Don’t have an account?{" "}
