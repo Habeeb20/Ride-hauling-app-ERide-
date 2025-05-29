@@ -481,6 +481,61 @@ profileRoute.get("/availability", verifyToken, isDriver, async (req, res) => {
 });
 
 
+
+// profileRoute.get("/availabledrivers", verifyToken, async (req, res) => {
+//   try {
+  
+//     const user = await User.findById(req.user.id);
+//     if (!user) {
+//       return res.status(404).json({ message: "User account not found" });
+//     }
+
+  
+//     const profileDrivers = await Profile.find({ availableToBeHired: true })
+//       .select("userId phoneNumber stateOfOrigin LGA availableToBeHired availableToBeHiredDetails location profilePicture")
+//       .populate("userId", "firstName lastName email uniqueNumber"); 
+
+   
+
+//     // Return available drivers
+//     return res.status(200).json({
+//       message: "Available drivers retrieved successfully",
+//       drivers: profileDrivers
+//     });
+//   } catch (error) {
+//     console.error("Error fetching available drivers:", error);
+//     return res.status(500).json({ message: "An error occurred on the server" });
+//   }
+// });
+
+
+
+// backend/routes/profileRoute.js
+profileRoute.get("/availabledrivers", verifyToken, async (req, res) => {
+  try {
+    const user = await  User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User account not found" });
+    }
+
+    const profileDrivers = await Profile.find({ availableToBeHired: true })
+      .select("userId profilePicture phoneNumber location availableToBeHired availableToBeHiredDetails")
+      .populate("userId", "firstName lastName email uniqueNumber");
+
+    if (profileDrivers.length === 0) {
+      return res.status(404).json({ message: "No available drivers found" });
+    }
+
+    return res.status(200).json({
+      message: "Available drivers retrieved successfully",
+      drivers: profileDrivers,
+    });
+  } catch (error) {
+    console.error("Error fetching available drivers:", error);
+    return res.status(500).json({ message: "An error occurred on the server" });
+  }
+});
+
   export default profileRoute
 
 

@@ -18,8 +18,9 @@ import OwnAcarRoute from "./routes/ownAcar/ownACarRoute.js";
 import ScheduleRoute from "./routes/rideRoutes/scheduleRoute.js";
 import rentalRoutes from "./routes/vehicle/rentalRoutes.js";
 import reportRouter from "./routes/reportRoute/reportRoute.js";
-
-
+import messageRouter from "./routes/authRoutes/messageRoute.js"
+import Message from "./model/auth/messageSchema.js";
+import jwt from "jsonwebtoken"
 import { redisClient, connectRedis } from "./redis.js";
 
 
@@ -49,6 +50,20 @@ io.use(async (socket, next) => {
     next(new Error("Authentication error"));
   }
 });
+
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error("Authentication error"));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id;
+    next();
+  } catch (error) {
+    next(new Error("Authentication error"));
+  }
+});
+
 
 // Socket.IO connection
 io.on("connection", (socket) => {
@@ -138,6 +153,73 @@ io.on("connection", (socket) => {
       }
     } catch (error) {
       console.error("Error sending message:", error);
+    }
+  });
+
+
+
+
+
+
+   // Join user's room
+  socket.join(socket.userId);
+
+  // Send message
+  socket.on("sendMessage", async ({ receiverId, content }) => {
+    try {
+      const message = new Message({
+        senderId: socket.userId,
+        receiverId,
+        content,
+      });
+      await message.save();
+
+      // Emit to receiver
+      io.to(receiverId).emit("receiveMessage", {
+        _id: message._id,
+        senderId: socket.userId,
+        receiverId,
+        content,
+        read: false,
+        createdAt: message.createdAt,
+      });
+
+      // Emit to sender (confirmation)
+      socket.emit("messageSent", {
+        _id: message._id,
+        senderId: socket.userId,
+        receiverId,
+        content,
+        read: false,
+        createdAt: message.createdAt,
+      });
+
+      // Update unread count for receiver
+      const unreadCount = await Message.countDocuments({
+        receiverId,
+        read: false,
+      });
+      io.to(receiverId).emit("unreadCount", unreadCount);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      socket.emit("error", "Failed to send message");
+    }
+  });
+
+  // Mark messages as read
+  socket.on("markAsRead", async ({ senderId }) => {
+    try {
+      await Message.updateMany(
+        { senderId, receiverId: socket.userId, read: false },
+        { read: true }
+      );
+      const unreadCount = await Message.countDocuments({
+        receiverId: socket.userId,
+        read: false,
+      });
+      socket.emit("unreadCount", unreadCount);
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
     }
   });
 
@@ -232,6 +314,7 @@ app.use("/api/ownacar", OwnAcarRoute);
 app.use("/api/schedule", ScheduleRoute);
 app.use("/api/rental", rentalRoutes);
 app.use("/api/reports", reportRouter);
+app.use("/api/message", messageRouter)
 
 // Error handling
 app.use((err, req, res, next) => {
@@ -262,3 +345,37 @@ process.on("uncaughtException", (err) => {
   console.error("Uncaught exception:", err);
   process.exit(1);
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

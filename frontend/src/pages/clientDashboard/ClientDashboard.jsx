@@ -23,6 +23,7 @@ import RegisterVehicle from '../Vehicle/RegisterVehicle';
 import OwnerDashboard from '../Vehicle/OwnerDashboard';
 import RideStatistics from './RideStatistics';
 import ReportDriver from './ReportDriver';
+import HireADriver from './HireADriver';
     const Navbar = ({ toggleTheme, isDarkTheme, profile }) => (
         <nav className={`fixed top-0 left-0 w-full z-50 shadow p-4 flex justify-between items-center ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
           <div className="flex items-center space-x-4">
@@ -152,6 +153,7 @@ const ClientDashboard = () => {
         {activeTab === 'rent-vehicle' && <RegisterVehicle isDarkTheme={isDarkTheme} />}
         {activeTab === 'renting' && <OwnerDashboard isDarkTheme={isDarkTheme} />}
         {activeTab === 'Book' && <Ride isDarkTheme={isDarkTheme} />}
+        {activeTab === 'hireadriver' && <HireADriver isDarkTheme={isDarkTheme} />}
       </div>
     );
   };
@@ -366,6 +368,21 @@ const ClientDashboard = () => {
             <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> have a car?
           </button>
         </li>
+           <li>
+          <button
+            onClick={() => {
+              setActiveTab('hireadriver');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'hireadriver'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Hire a driver?
+          </button>
+        </li>
         <li>
           <button
             onClick={() => {
@@ -462,13 +479,13 @@ const ClientDashboard = () => {
               className="w-10 h-10 rounded-full mr-3"
             />
             <div>
-              <p className={`${isDarkTheme ? 'text-green-400' : 'text-green-800'}`}>{profile.userId?.email || 'user@example.com'}</p>
+              {/* <p className={`${isDarkTheme ? 'text-green-400' : 'text-green-800'}`}>{profile.userId?.email || 'user@example.com'}</p> */}
               <p className={`${isDarkTheme ? 'text-white' : 'text-gray-800'} font-semibold`}>
                 {profile.userId?.firstName || 'User'} {profile.userId?.lastName || ''}
               </p>
-              <Link to="#" className={`${isDarkTheme ? 'text-gray-400 hover:underline' : 'text-gray-600 text-sm hover:underline'}`}>
+              {/* <Link to="#" className={`${isDarkTheme ? 'text-gray-400 hover:underline' : 'text-gray-600 text-sm hover:underline'}`}>
                 Visit site
-              </Link>
+              </Link> */}
             </div>
           </div>
         </div>
