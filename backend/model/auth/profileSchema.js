@@ -88,6 +88,45 @@ const profileSchema = new mongoose.Schema(
       default: true
 
     },
+
+    availableToBeHired:{
+      type: Boolean,
+      default: false
+
+    },
+      availableToBeHiredDetails: {
+      durationType: {
+        type: String,
+        enum: ["day", "days", "week", "weeks", "month", "months", "permanent", "temporary"],
+        required: function () {
+          return this.availableToBeHired === true;
+        },
+      },
+      durationValue: {
+        type: Number,
+        required: function () {
+          return (
+            this.availableToBeHired === true &&
+            ["day", "days", "week", "weeks", "month", "months"].includes(this.availableToBeHiredDetails?.durationType)
+          );
+        },
+        min: [1, "Duration must be at least 1"],
+      },
+      minSalary: {
+        type: Number,
+        required: function () {
+          return this.availableToBeHired === true;
+        },
+        min: [0, "Minimum salary cannot be negative"],
+      },
+      startDate: {
+        type: Date,
+        required: function () {
+          return this.availableToBeHired === true;
+        },
+        default: Date.now,
+      },
+    },
     rating: { type: Number, default: 0 }, // Average rating
     rideCount: { type: Number, default: 0 },
     location: {
@@ -127,6 +166,34 @@ profileSchema.pre("save", function(next){
 
 
 export default mongoose.model("Profile", profileSchema);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

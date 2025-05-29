@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 
 
-import { FaHistory, FaStopwatch,  } from 'react-icons/fa';
+import { FaHireAHelper, FaHistory, FaStopwatch,  } from 'react-icons/fa';
 import { FaTruck, } from 'react-icons/fa';
 import { FaLightbulb } from 'react-icons/fa';
 
@@ -18,6 +18,7 @@ import AvailableRidesOrder from './AvailableRidesOrder';
 import DriverStatistics from './DriverStatistics';
 import FreightDriver from './FreightDriver';
 import DriverRideStatistics from './DriverRideStatistics';
+import WantToBeHired from './WantToBeHired';
 
     const Navbar = ({ toggleTheme, isDarkTheme, profile }) => (
         <nav className={`fixed top-0 left-0 w-full z-50 shadow p-4 flex justify-between items-center ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
@@ -136,6 +137,7 @@ const DriverDashboard = () => {
         {activeTab === 'Freight' && <FreightDriver isDarkTheme={isDarkTheme} />}
         {activeTab === 'Dashboard' && <DriverStatistics isDarkTheme={isDarkTheme} />}
         {activeTab === 'Orders' && <AvailableRidesOrder isDarkTheme={isDarkTheme} />}
+        {activeTab === 'wanttobehired' && <WantToBeHired isDarkTheme={isDarkTheme} />}
 
       </div>
     );
@@ -202,6 +204,20 @@ const DriverDashboard = () => {
           >
             <FaHistory className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> History
           </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('wanttobehired');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'wanttobehired'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaHireAHelper className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Want to be hired as a driver?          </button>
         </li>
         <li>
           <button

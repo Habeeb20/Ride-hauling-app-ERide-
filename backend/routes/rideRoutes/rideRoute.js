@@ -385,6 +385,20 @@ export default (io) => {
 
 
 
+erideRouter.post('/:rideId/emergency', async (req, res) => {
+  try {
+    const { rideId } = req.params;
+    // Logic to handle emergency (e.g., notify authorities)
+    io.to(rideId).emit('emergencyReported', { rideId });
+    res.status(200).json({ status: true, message: 'Emergency reported' });
+  } catch (error) {
+    console.error('Emergency error:', error);
+    res.status(500).json({ error: 'Failed to report emergency' });
+  }
+});
+
+
+
 
 
 

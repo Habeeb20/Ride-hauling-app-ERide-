@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../model/auth/authSchema.js";
+import Profile from "../model/auth/profileSchema.js";
 export const verifyToken =  async (req, res, next) => {
 
   const authHeader = req.headers.authorization || req.headers.Authorization;
@@ -51,6 +52,36 @@ export const verifyToken =  async (req, res, next) => {
 };
 
 
+
+
+
+
+
+export const isDriver = async (req, res, next) => {
+  try {
+    // Fetch user to check role
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (user.role !== "driver") {
+      return res.status(403).json({ error: "Access denied. Drivers only." });
+    }
+
+    // Fetch profile using user._id as userId
+    const profile = await Profile.findOne({ userId: user._id.toString() });
+    if (!profile) {
+      return res.status(404).json({ error: "Profile not found. Please create a profile." });
+    }
+
+    req.profile = profile; 
+    req.userDocument = user; 
+    next();
+  } catch (error) {
+    console.error("Error in isDriver middleware:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 
 
 

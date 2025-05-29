@@ -74,6 +74,55 @@ io.on("connection", (socket) => {
     }
   });
 
+    socket.on('new ride', (rideData) => {
+    try {
+      io.emit('new ride request', rideData);
+    } catch (error) {
+      console.error('Error handling new ride:', error);
+    }
+  });
+
+  socket.on('accept driver', ({ rideId, driverId }) => {
+    try {
+      io.to(rideId).emit('driver response', { rideId, driverId });
+    } catch (error) {
+      console.error('Error handling driver acceptance:', error);
+    }
+  });
+
+  socket.on('reject driver', ({ rideId, driverId }) => {
+    try {
+      io.to(rideId).emit('driverOfferRejected', { driverId });
+    } catch (error) {
+      console.error('Error rejecting driver:', error);
+    }
+  });
+
+  socket.on('cancel ride', (rideId) => {
+    try {
+      io.to(rideId).emit('rideCancelled', { rideId });
+    } catch (error) {
+      console.error('Error cancelling ride:', error);
+    }
+  });
+
+  socket.on('start ride', (rideId) => {
+    try {
+      io.to(rideId).emit('rideStarted', { rideId });
+    } catch (error) {
+      console.error('Error starting ride:', error);
+    }
+  });
+
+  socket.on('emergency', ({ rideId, userId }) => {
+    try {
+      io.to(rideId).emit('emergencyReported', { rideId });
+    } catch (error) {
+      console.error('Error handling emergency:', error);
+    }
+  });
+
+
   socket.on("send message", async ({ rideId, text }) => {
     try {
       const userId = socket.user.id;
@@ -97,6 +146,62 @@ io.on("connection", (socket) => {
     io.emit("userDisconnected", `User ${socket.user.id} has left`);
   });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// io.on('connection', (socket) => {
+//   console.log('Client connected');
+
+
+//   socket.on('send message', async ({ rideId, text }) => {
+//     try {
+//       // Save message to Redis or database
+//       io.to(rideId).emit('new message', { senderId: socket.userId, text });
+//     } catch (error) {
+//       console.error('Error sending message:', error);
+//     }
+//   });
+// });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Middleware
 app.use(express.json({ limit: "10mb" }));

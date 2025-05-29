@@ -2,7 +2,7 @@ import User from "../../model/auth/authSchema.js";
 import Profile from "../../model/auth/profileSchema.js";
 import express from "express"
 import { verifyToken } from "../../middleware/verifyToken.js";
-
+import { isDriver } from "../../middleware/verifyToken.js";
 import cloudinary from "cloudinary"
 
 
@@ -22,6 +22,8 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+
 
 
 profileRoute.post("/createprofile", async (req, res) => {
@@ -382,21 +384,104 @@ profileRoute.put("/update", async (req, res) => {
   
   
 
+// Toggle availableToBeHired and save details
+
+
+
+
+profileRoute.post("/availability", verifyToken, isDriver, async (req, res) => {
+  const { availableToBeHired, durationType, durationValue, minSalary } = req.body;
+
+  try {
+    if (typeof availableToBeHired !== "boolean") {
+      return res.status(400).json({ error: "availableToBeHired must be a boolean" });
+    }
+
+    const profile = req.profile;
+    console.log("Profile before update:", profile);
+
+    if (!availableToBeHired) {
+      profile.availableToBeHired = false;
+      profile.availableToBeHiredDetails = undefined;
+    } else {
+      if (!durationType || minSalary == null) {
+        return res.status(400).json({ error: "durationType and minSalary are required when enabling availability" });
+      }
+
+      const validDurationTypes = ["day", "days", "week", "weeks", "month", "months", "permanent", "temporary"];
+      if (!validDurationTypes.includes(durationType)) {
+        return res.status(400).json({ error: "Invalid durationType" });
+      }
+
+      if (
+        ["day", "days", "week", "weeks", "month", "months"].includes(durationType) &&
+        (!durationValue || durationValue < 1)
+      ) {
+        return res.status(400).json({ error: "durationValue is required and must be at least 1 for this durationType" });
+      }
+
+      profile.availableToBeHired = true;
+      profile.availableToBeHiredDetails = {
+        durationType,
+        durationValue: durationValue ? Number(durationValue) : null,
+        minSalary: Number(minSalary),
+        startDate: new Date(),
+      };
+
+      // Mark nested field as modified
+      profile.markModified("availableToBeHiredDetails");
+    }
+
+    await profile.save();
+   
+
+
+    const savedProfile = await Profile.findOne({ userId: req.user._id });
+
+
+        if (!savedProfile) {
+      return res.status(500).json({ error: "Failed to retrieve updated profile" });
+    }
+
+    res.status(200).json({
+      message: "Availability updated successfully",
+      availableToBeHired: profile.availableToBeHired,
+      availableToBeHiredDetails: savedProfile.availableToBeHired,
+    });
+  } catch (error) {
+    console.error("Error updating availability:", error);
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ error: "Validation failed", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to update availability", details: error.message });
+  }
+});
+
+
+
+
+
+// Get driver availability
+
+
+
+
+// routes/profileRoute.js (add to existing file)
+profileRoute.get("/availability", verifyToken, isDriver, async (req, res) => {
+  try {
+    const profile = req.profile;
+    res.status(200).json({
+      availableToBeHired: profile.availableToBeHired,
+      availableToBeHiredDetails: profile.availableToBeHiredDetails,
+    });
+  } catch (error) {
+    console.error("Error fetching availability:", error);
+    res.status(500).json({ error: "Failed to fetch availability", details: error.message });
+  }
+});
+
+
   export default profileRoute
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
