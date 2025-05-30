@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
+    "amqplib": "^0.10.8",
     "axios": "^1.9.0",
     "backend": "file:",
     "bcrypt": "^5.1.1",

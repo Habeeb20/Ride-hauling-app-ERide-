@@ -24,6 +24,7 @@ import OwnerDashboard from '../Vehicle/OwnerDashboard';
 import RideStatistics from './RideStatistics';
 import ReportDriver from './ReportDriver';
 import HireADriver from './HireADriver';
+import Suggestions from './Suggestions';
     const Navbar = ({ toggleTheme, isDarkTheme, profile }) => (
         <nav className={`fixed top-0 left-0 w-full z-50 shadow p-4 flex justify-between items-center ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
           <div className="flex items-center space-x-4">
@@ -154,6 +155,7 @@ const ClientDashboard = () => {
         {activeTab === 'renting' && <OwnerDashboard isDarkTheme={isDarkTheme} />}
         {activeTab === 'Book' && <Ride isDarkTheme={isDarkTheme} />}
         {activeTab === 'hireadriver' && <HireADriver isDarkTheme={isDarkTheme} />}
+        {activeTab === 'suggestion' && <Suggestions isDarkTheme={isDarkTheme} />}
       </div>
     );
   };
@@ -321,6 +323,21 @@ const ClientDashboard = () => {
             }`}
           >
             <FaHistory className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> History
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('suggestion');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'suggestion'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaHistory className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} />Suggestions
           </button>
         </li>
         <li>

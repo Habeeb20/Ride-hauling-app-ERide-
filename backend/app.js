@@ -246,19 +246,6 @@ io.on("connection", (socket) => {
 
 
 
-// io.on('connection', (socket) => {
-//   console.log('Client connected');
-
-
-//   socket.on('send message', async ({ rideId, text }) => {
-//     try {
-//       // Save message to Redis or database
-//       io.to(rideId).emit('new message', { senderId: socket.userId, text });
-//     } catch (error) {
-//       console.error('Error sending message:', error);
-//     }
-//   });
-// });
 
 
 
@@ -314,7 +301,7 @@ app.use("/api/ownacar", OwnAcarRoute);
 app.use("/api/schedule", ScheduleRoute);
 app.use("/api/rental", rentalRoutes);
 app.use("/api/reports", reportRouter);
-app.use("/api/message", messageRouter)
+app.use("/api/messages", messageRouter)
 
 // Error handling
 app.use((err, req, res, next) => {
