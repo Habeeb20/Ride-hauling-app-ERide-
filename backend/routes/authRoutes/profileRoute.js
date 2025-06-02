@@ -34,10 +34,18 @@ profileRoute.post("/createprofile", async (req, res) => {
       phoneNumber,
       carDetails,
       question,
-      profilePicture, // Now expecting a URL from frontend
-      schoolIdUrl,       // Now expecting a URL from frontend (if applicable)
-      carPicture,     // Now expecting a URL from frontend (if applicable)
-      driverLicense   // Now expecting a URL from frontend (if applicable)
+      profilePicture, 
+      schoolIdUrl,      
+      carPicture,    
+      driverLicense,
+      certificateTraining,
+      maritalStatus,
+      YOE,
+      currentLocation,
+      languageSpoken,
+      gearType,
+      vehicleType,
+         
     } = req.body;
   
     try {
@@ -99,7 +107,8 @@ profileRoute.post("/createprofile", async (req, res) => {
         gender,
         location: parsedLocation,
         phoneNumber,
-        profilePicture, // Directly use the URL from frontend
+        profilePicture, 
+
       };
   
       // Handle passenger role
@@ -137,8 +146,60 @@ profileRoute.post("/createprofile", async (req, res) => {
             message: "Driver's license URL is required",
           });
         }
-        profileData.carPicture = carPicture;     // Use the URL from frontend
-        profileData.driverLicense = driverLicense; // Use the URL from frontend
+        if (!certificateTraining) {
+          return res.status(400).json({
+            status: false,
+            message: "Driver's cerfitificate is required",
+          });
+        }
+        if (!maritalStatus) {
+          return res.status(400).json({
+            status: false,
+            message: "Driver's marital Status is required",
+          });
+        }
+        if (!YOE) {
+          return res.status(400).json({
+            status: false,
+            message: "Driver's years of experience is required",
+          });
+        }
+        if (!currentLocation) {
+          return res.status(400).json({
+            status: false,
+            message: "Driver's years of experience is required",
+          });
+        }
+        if (!languageSpoken) {
+          return res.status(400).json({
+            status: false,
+            message: "Driver's preferred language is required",
+          });
+        }
+        if (!gearType) {
+          return res.status(400).json({
+            status: false,
+            message: "Driver's gear type is required",
+          });
+        }
+        if (!vehicleType) {
+          return res.status(400).json({
+            status: false,
+            message: "Driver's vehicle type is required",
+          });
+        }
+
+
+        profileData.carPicture = carPicture;    
+        profileData.driverLicense = driverLicense;
+        profileData.certificateTraining=certificateTraining
+        profileData.maritalStatus=maritalStatus
+        profileData.YOE=YOE
+        profileData.currentLocation=currentLocation
+        profileData.languageSpoken=languageSpoken
+        profileData.gearType=gearType
+        profileData.vehicleType=vehicleType 
+
   
         if (!carDetails) {
           return res.status(400).json({

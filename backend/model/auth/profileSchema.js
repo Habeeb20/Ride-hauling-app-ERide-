@@ -43,6 +43,59 @@ const profileSchema = new mongoose.Schema(
         return this.role === "driver";
       },
     },
+
+
+
+    certificateTraining: {
+      type: String, 
+      required: function () {
+        return this.role === "driver";
+      },
+    },
+    maritalStatus: {
+      type: String, 
+      required: function () {
+        return this.role === "driver";
+      },
+    },
+    YOE: {
+      type: String, 
+      required: function () {
+        return this.role === "driver";
+      },
+    },
+    currentLocation: {
+      type: String, 
+      required: function () {
+        return this.role === "driver";
+      },
+    },
+    
+    languageSpoken: {
+      type: String, 
+      required: function () {
+        return this.role === "driver";
+      },
+    },
+    gearType: {
+      type: String, 
+      required: function () {
+        return this.role === "driver";
+      },
+    },
+    VehicleType: {
+      type: String, 
+      required: function () {
+        return this.role === "driver";
+      },
+    },
+
+
+
+
+
+
+
     carDetails: {
       model: {
         type: String,
@@ -118,6 +171,32 @@ const profileSchema = new mongoose.Schema(
           return this.availableToBeHired === true;
         },
         min: [0, "Minimum salary cannot be negative"],
+      },
+      interstateTravel: {
+        type: Boolean,
+        required: function () {
+          return this.availableToBeHired === true;
+        },
+      
+      },
+      typeOfCar: {
+        type: String,
+        required: function () {
+          return this.availableToBeHired === true;
+        },
+      
+      },
+      typeOfTransmission: {
+        type: String,
+        required: function () {
+          return this.availableToBeHired === true;
+        },
+      },
+      choice: {
+        type: String,
+        required: function () {
+          return this.availableToBeHired === true;
+        },
       },
       startDate: {
         type: Date,

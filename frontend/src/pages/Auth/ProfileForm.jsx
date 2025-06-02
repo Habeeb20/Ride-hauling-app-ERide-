@@ -885,17 +885,23 @@ const ProfileForm = ({ userId }) => {
     },
     location: { state: "", lga: "", address: "" },
     phoneNumber: "",
+    certificateTraining: null,
+    maritalStatus: "",
+    YOE: "",
+    currentLocation: "",
+    languageSpoken: "",
+    gearType: "",
+    vehicleType: "",
   };
 
   useEffect(() => {
     if (!email || !role || !["client", "driver", "admin"].includes(role)) {
       setError("Invalid email or role. Please try registering again.");
       toast.error("Invalid email or role. Please try registering again.", {
-        style: { background: "#F44336", color: "white" },
+        style: { background: "#EF4444", color: "white" },
       });
       navigate("/register");
     } else {
-      // Set initial step based on role
       setStep(role === "client" ? 1 : 2);
     }
     console.log("Cloud Name:", import.meta.env.VITE_CLOUDINARY_CLOUD_NAME);
@@ -922,7 +928,9 @@ const ProfileForm = ({ userId }) => {
 
     if (!values.location.state) errors["location.state"] = "State is required";
     if (!values.location.lga) errors["location.lga"] = "LGA is required";
-    if (!values.location.address) errors["location.address"] = "address is required";
+    if (!values.location.address) errors["location.address"] = "Address is required";
+
+    if (!values.gender) errors.gender = "Gender is required";
 
     if (values.role === "driver") {
       if (!values.carDetails.model)
@@ -943,6 +951,20 @@ const ProfileForm = ({ userId }) => {
         errors.carPicture = "Car picture file is required for drivers";
       if (!values.driverLicense)
         errors.driverLicense = "Driver's license file is required";
+      if (!values.certificateTraining)
+        errors.certificateTraining = "Certificate of training file is required";
+      if (!values.maritalStatus)
+        errors.maritalStatus = "Marital status is required";
+      if (!values.YOE)
+        errors.YOE = "Years of experience is required";
+      if (!values.currentLocation)
+        errors.currentLocation = "Current location is required";
+      if (!values.languageSpoken)
+        errors.languageSpoken = "Language spoken is required";
+      if (!values.gearType)
+        errors.gearType = "Vehicle transmission is required";
+      if (!values.vehicleType)
+        errors.vehicleType = "Vehicle type is required";
     }
 
     return errors;
@@ -973,7 +995,31 @@ const ProfileForm = ({ userId }) => {
       setLoading(false);
       setSubmitting(false);
 
-      const errorMessages = { /* ... */ };
+      const errorMessages = {
+        role: "Role",
+        question: "Passenger Type",
+        schoolId: "School ID",
+        gender: "Gender",
+        phoneNumber: "Phone Number",
+        "location.state": "State",
+        "location.lga": "LGA",
+        "location.address": "Address",
+        "carDetails.model": "Car Model",
+        "carDetails.product": "Car Product",
+        "carDetails.year": "Car Year",
+        "carDetails.color": "Car Color",
+        "carDetails.plateNumber": "Plate Number",
+        profilePicture: "Profile Picture",
+        carPicture: "Car Picture",
+        driverLicense: "Driver's License",
+        certificateTraining: "Certificate of Training",
+        maritalStatus: "Marital Status",
+        YOE: "Years of Experience",
+        currentLocation: "Current Location",
+        languageSpoken: "Language Spoken",
+        gearType: "Gear Type",
+        vehicleType: "Vehicle Type",
+      };
       const errorList = Object.keys(errors).map((field) => {
         const fieldName = errorMessages[field] || field;
         return `${fieldName}: ${errors[field]}`;
@@ -987,7 +1033,7 @@ const ProfileForm = ({ userId }) => {
       }
 
       toast.error(`Please correct the following:\n${errorMessage}`, {
-        style: { background: "#F44336", color: "white", whiteSpace: "pre-line" },
+        style: { background: "#EF4444", color: "white", whiteSpace: "pre-line" },
         duration: 5000,
       });
       return;
@@ -996,32 +1042,32 @@ const ProfileForm = ({ userId }) => {
     setLoading(true);
 
     try {
-      // Upload files to Cloudinary and get URLs
       const profilePictureUrl = await uploadToCloudinary(values.profilePicture);
       let schoolIdUrl = null;
       let carPictureUrl = null;
       let driverLicenseUrl = null;
+      let certificateTrainingUrl = null;
 
-      if (values.role === "passenger" && values.question === "student" && values.schoolId) {
+      if (values.role === "client" && values.question === "student" && values.schoolId) {
         schoolIdUrl = await uploadToCloudinary(values.schoolId);
       }
       if (values.role === "driver") {
         carPictureUrl = await uploadToCloudinary(values.carPicture);
         driverLicenseUrl = await uploadToCloudinary(values.driverLicense);
+        certificateTrainingUrl = await uploadToCloudinary(values.certificateTraining);
       }
 
-      // Prepare the request body with URLs instead of base64
       const body = {
         userEmail,
         question,
-        gender: values.gender, // Updated to use Formik's gender value
+        gender: values.gender,
         role: values.role,
         location: JSON.stringify({ ...values.location, coordinates }),
         phoneNumber: values.phoneNumber,
         profilePicture: profilePictureUrl,
       };
 
-      if (values.role === "role") {
+      if (values.role === "client") {
         body.question = values.question;
         if (values.question === "student" && schoolIdUrl) {
           body.schoolId = schoolIdUrl;
@@ -1030,6 +1076,13 @@ const ProfileForm = ({ userId }) => {
         body.carDetails = JSON.stringify(values.carDetails);
         body.carPicture = carPictureUrl;
         body.driverLicense = driverLicenseUrl;
+        body.certificateTraining = certificateTrainingUrl;
+        body.maritalStatus = values.maritalStatus;
+        body.YOE = values.YOE;
+        body.currentLocation = values.currentLocation;
+        body.languageSpoken = values.languageSpoken;
+        body.gearType = values.gearType;
+        body.vehicleType = values.vehicleType;
       }
 
       console.log("Request Body:", body);
@@ -1042,7 +1095,7 @@ const ProfileForm = ({ userId }) => {
         }
       );
       toast.success("Profile created successfully!", {
-        style: { background: "#28a745", color: "white" },
+        style: { background: "#10B981", color: "white" },
       });
       navigate(data.role === "driver" ? "/login" : "/login");
     } catch (error) {
@@ -1050,7 +1103,7 @@ const ProfileForm = ({ userId }) => {
       toast.error(
         error.response?.data?.message || "Failed to create profile. Please try again.",
         {
-          style: { background: "#F44336", color: "white" },
+          style: { background: "#EF4444", color: "white" },
         }
       );
     } finally {
@@ -1068,351 +1121,581 @@ const ProfileForm = ({ userId }) => {
   };
 
   return (
-    <>
-      <Navbar />
-      <div className="relative min-h-screen flex items-center justify-center">
-        <div className="relative z-10 bg-white bg-opacity-95 p-6 rounded-xl shadow-lg max-w-md w-full">
-          <img
-            src={carImage}
-            alt="Car"
-            className="absolute -top-16 right-4 w-10 h-auto rounded-lg shadow-md transform rotate-3 hover:scale-105 hover:rotate-0 transition-all duration-300"
-          />
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4 mt-10 text-center">
-            Complete Your Profile (Step {step}/{role === "client" ? 2 : 1})
-          </h2>
-          <Formik initialValues={initialValues} onSubmit={handleSubmit}>
-            {({ values, setFieldValue, isSubmitting }) => (
-              <Form className="space-y-4">
-                {step === 1 && values.role === "client" && (
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Are you a student or passenger?
-                    </label>
-                    <Field
-                      as="select"
-                      name="question"
-                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      onChange={(e) => {
-                        setQuestion(e.target.value);
-                        setFieldValue("question", e.target.value);
-                      }}
-                    >
-                      <option value="">Select Option</option>
-                      <option value="student">Student</option>
-                      <option value="passenger">Passenger</option>
-                    </Field>
-                    {formErrors.question && (
-                      <div className="text-red-500 text-sm">{formErrors.question}</div>
+   <>
+  <Navbar />
+  <div className="min-h-screen bg-gradient-to-b from-blue-50 to-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="relative bg-white shadow-2xl rounded-2xl p-8 max-w-lg w-full">
+      <img
+        src={carImage}
+        alt="Car decoration"
+        className="absolute -top-12 right-4 w-12 h-auto rounded-lg shadow-md transform rotate-6 hover:scale-110 hover:rotate-0 transition-all duration-300"
+        aria-hidden="true"
+      />
+      <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">
+        Complete Your Profile (Step {step}/{role === "client" ? 2 : 1})
+      </h2>
+      {error && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded" role="alert">
+          {error}
+        </div>
+      )}
+      <Formik initialValues={initialValues} onSubmit={handleSubmit}>
+        {({ values, setFieldValue, isSubmitting }) => (
+          <Form className="space-y-6">
+            {step === 1 && values.role === "client" && (
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="question"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Are you a student or passenger?
+                  </label>
+                  <Field
+                    as="select"
+                    name="question"
+                    id="question"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    onChange={(e) => {
+                      setQuestion(e.target.value);
+                      setFieldValue("question", e.target.value);
+                    }}
+                    aria-label="Select passenger type"
+                  >
+                    <option value="">Select Option</option>
+                    <option value="student">Student</option>
+                    <option value="passenger">Passenger</option>
+                  </Field>
+                  {formErrors.question && (
+                    <div className="text-red-600 text-sm mt-1">{formErrors.question}</div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  onClick={() => values.question && setStep(2)}
+                  disabled={!values.question}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-6">
+                {/* Profile Picture */}
+                <div>
+                  <label
+                    htmlFor="profilePicture"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Upload Profile Picture
+                  </label>
+                  <Dropzone
+                    onDrop={(files) => setFieldValue("profilePicture", files[0])}
+                  >
+                    {({ getRootProps, getInputProps, isDragActive }) => (
+                      <div
+                        {...getRootProps()}
+                        className={`p-6 border-2 border-dashed rounded-lg text-center transition-colors ${
+                          isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-gray-50"
+                        } hover:bg-gray-100 cursor-pointer`}
+                      >
+                        <input {...getInputProps()} id="profilePicture" aria-label="Upload profile picture" />
+                        <p className="text-gray-600">
+                          {isDragActive
+                            ? "Drop the profile picture here"
+                            : "Drop profile picture here or click to upload"}
+                        </p>
+                        {values.profilePicture && (
+                          <p className="text-sm text-gray-500 mt-2">{values.profilePicture.name}</p>
+                        )}
+                      </div>
                     )}
-                    <button
-                      type="button"
-                      className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
-                      onClick={() => values.question && setStep(2)}
-                      disabled={!values.question}
+                  </Dropzone>
+                  {formErrors.profilePicture && (
+                    <div className="text-red-600 text-sm mt-1">{formErrors.profilePicture}</div>
+                  )}
+                </div>
+
+                {values.role === "client" && question === "student" && (
+                  <div>
+                    <label
+                      htmlFor="schoolId"
+                      className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Next
-                    </button>
+                      Upload School ID
+                    </label>
+                    <Dropzone
+                      onDrop={(files) => setFieldValue("schoolId", files[0])}
+                    >
+                      {({ getRootProps, getInputProps, isDragActive }) => (
+                        <div
+                          {...getRootProps()}
+                          className={`p-6 border-2 border-dashed rounded-lg text-center transition-colors ${
+                            isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-gray-50"
+                          } hover:bg-gray-100 cursor-pointer`}
+                        >
+                          <input {...getInputProps()} id="schoolId" aria-label="Upload school ID" />
+                          <p className="text-gray-600">
+                            {isDragActive
+                              ? "Drop the school ID here"
+                              : "Drop school ID here or click to upload"}
+                          </p>
+                          {values.schoolId && (
+                            <p className="text-sm text-gray-500 mt-2">{values.schoolId.name}</p>
+                          )}
+                        </div>
+                      )}
+                    </Dropzone>
+                    {formErrors.schoolId && (
+                      <div className="text-red-600 text-sm mt-1">{formErrors.schoolId}</div>
+                    )}
                   </div>
                 )}
 
-                {step === 2 && (
-                  <div className="space-y-3 max-w-sm mx-auto">
-                    {/* Profile Picture (Required for All) */}
+                {values.role === "driver" && (
+                  <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Upload Profile Picture
+                      <label
+                        htmlFor="carPicture"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Upload Car Picture
                       </label>
                       <Dropzone
-                        onDrop={(files) => setFieldValue("profilePicture", files[0])}
+                        onDrop={(files) => setFieldValue("carPicture", files[0])}
                       >
-                        {({ getRootProps, getInputProps }) => (
+                        {({ getRootProps, getInputProps, isDragActive }) => (
                           <div
                             {...getRootProps()}
-                            className="p-4 border-2 border-dashed border-blue-500 rounded-lg text-center bg-blue-50 hover:bg-blue-100 transition-colors"
+                            className={`p-6 border-2 border-dashed rounded-lg text-center transition-colors ${
+                              isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-gray-50"
+                            } hover:bg-gray-100 cursor-pointer`}
                           >
-                            <input {...getInputProps()} name="profilePicture" />
-                            <p className="text-blue-600">
-                              Drop profile picture here or click to upload
+                            <input {...getInputProps()} id="carPicture" aria-label="Upload car picture" />
+                            <p className="text-gray-600">
+                              {isDragActive
+                                ? "Drop the car picture here"
+                                : "Drop car picture here or click to upload"}
                             </p>
-                            {values.profilePicture && (
-                              <p className="text-gray-600">{values.profilePicture.name}</p>
+                            {values.carPicture && (
+                              <p className="text-sm text-gray-500 mt-2">{values.carPicture.name}</p>
                             )}
                           </div>
                         )}
                       </Dropzone>
-                      {formErrors.profilePicture && (
-                        <div className="text-red-500 text-sm">
-                          {formErrors.profilePicture}
-                        </div>
+                      {formErrors.carPicture && (
+                        <div className="text-red-600 text-sm mt-1">{formErrors.carPicture}</div>
                       )}
                     </div>
 
-                    {values.role === "client" && question === "student" && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Upload School ID
-                        </label>
-                        <Dropzone
-                          onDrop={(files) => setFieldValue("schoolId", files[0])}
-                        >
-                          {({ getRootProps, getInputProps }) => (
-                            <div
-                              {...getRootProps()}
-                              className="p-4 border-2 border-dashed border-blue-500 rounded-lg text-center bg-blue-50 hover:bg-blue-100 transition-colors"
-                            >
-                              <input {...getInputProps()} name="schoolId" />
-                              <p className="text-blue-600">
-                                Drop school ID here or click to upload
-                              </p>
-                              {values.schoolId && (
-                                <p className="text-gray-600">{values.schoolId.name}</p>
-                              )}
-                            </div>
-                          )}
-                        </Dropzone>
-                        {formErrors.schoolId && (
-                          <div className="text-red-500 text-sm">{formErrors.schoolId}</div>
+                    <div>
+                      <label
+                        htmlFor="certificateTraining"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Upload Certificate of Training
+                      </label>
+                      <Dropzone
+                        onDrop={(files) => setFieldValue("certificateTraining", files[0])}
+                      >
+                        {({ getRootProps, getInputProps, isDragActive }) => (
+                          <div
+                            {...getRootProps()}
+                            className={`p-6 border-2 border-dashed rounded-lg text-center transition-colors ${
+                              isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-gray-50"
+                            } hover:bg-gray-100 cursor-pointer`}
+                          >
+                            <input {...getInputProps()} id="certificateTraining" aria-label="Upload certificate of training" />
+                            <p className="text-gray-600">
+                              {isDragActive
+                                ? "Drop the certificate here"
+                                : "Drop certificate of training here or click to upload"}
+                            </p>
+                            {values.certificateTraining && (
+                              <p className="text-sm text-gray-500 mt-2">{values.certificateTraining.name}</p>
+                            )}
+                          </div>
                         )}
-                      </div>
-                    )}
+                      </Dropzone>
+                      {formErrors.certificateTraining && (
+                        <div className="text-red-600 text-sm mt-1">{formErrors.certificateTraining}</div>
+                      )}
+                    </div>
 
-                    {values.role === "driver" && (
-                      <>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Upload Car Picture
-                          </label>
-                          <Dropzone
-                            onDrop={(files) => setFieldValue("carPicture", files[0])}
+                    <div>
+                      <label
+                        htmlFor="driverLicense"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Upload Driver's License
+                      </label>
+                      <Dropzone
+                        onDrop={(files) => setFieldValue("driverLicense", files[0])}
+                      >
+                        {({ getRootProps, getInputProps, isDragActive }) => (
+                          <div
+                            {...getRootProps()}
+                            className={`p-6 border-2 border-dashed rounded-lg text-center transition-colors ${
+                              isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-gray-50"
+                            } hover:bg-gray-100 cursor-pointer`}
                           >
-                            {({ getRootProps, getInputProps }) => (
-                              <div
-                                {...getRootProps()}
-                                className="p-4 border-2 border-dashed border-blue-500 rounded-lg text-center bg-blue-50 hover:bg-blue-100 transition-colors"
-                              >
-                                <input {...getInputProps()} name="carPicture" />
-                                <p className="text-blue-600">
-                                  Drop car picture here or click to upload
-                                </p>
-                                {values.carPicture && (
-                                  <p className="text-gray-600">{values.carPicture.name}</p>
-                                )}
-                              </div>
+                            <input {...getInputProps()} id="driverLicense" aria-label="Upload driver's license" />
+                            <p className="text-gray-600">
+                              {isDragActive
+                                ? "Drop the driver's license here"
+                                : "Drop driver's license here or click to upload"}
+                            </p>
+                            {values.driverLicense && (
+                              <p className="text-sm text-gray-500 mt-2">{values.driverLicense.name}</p>
                             )}
-                          </Dropzone>
-                          {formErrors.carPicture && (
-                            <div className="text-red-500 text-sm">
-                              {formErrors.carPicture}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Upload Driver's License
+                          </div>
+                        )}
+                      </Dropzone>
+                      {formErrors.driverLicense && (
+                        <div className="text-red-600 text-sm mt-1">{formErrors.driverLicense}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Gear Type (Which one can you drive?)
+                      </label>
+                      <div className="flex flex-wrap gap-4">
+                        {["manual", "automatic", "both"].map((type) => (
+                          <label key={type} className="flex items-center">
+                            <Field
+                              type="radio"
+                              name="gearType"
+                              value={type}
+                              className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                              disabled={loading}
+                            />
+                            <span className="text-gray-700 capitalize">{type}</span>
                           </label>
-                          <Dropzone
-                            onDrop={(files) => setFieldValue("driverLicense", files[0])}
-                          >
-                            {({ getRootProps, getInputProps }) => (
-                              <div
-                                {...getRootProps()}
-                                className="p-4 border-2 border-dashed border-blue-500 rounded-lg text-center bg-blue-50 hover:bg-blue-100 transition-colors"
-                              >
-                                <input {...getInputProps()} name="driverLicense" />
-                                <p className="text-blue-600">
-                                  Drop driver's license here or click to upload
-                                </p>
-                                {values.driverLicense && (
-                                  <p className="text-gray-600">
-                                    {values.driverLicense.name}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </Dropzone>
-                          {formErrors.driverLicense && (
-                            <div className="text-red-500 text-sm">
-                              {formErrors.driverLicense}
-                            </div>
-                          )}
-                        </div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Car Details
-                        </label>
+                        ))}
+                      </div>
+                      {formErrors.gearType && (
+                        <div className="text-red-600 text-sm mt-1">{formErrors.gearType}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Marital Status
+                      </label>
+                      <div className="flex flex-wrap gap-4">
+                        {["single", "married", "divorced", "widow"].map((status) => (
+                          <label key={status} className="flex items-center">
+                            <Field
+                              type="radio"
+                              name="maritalStatus"
+                              value={status}
+                              className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                              disabled={loading}
+                            />
+                            <span className="text-gray-700 capitalize">{status}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {formErrors.maritalStatus && (
+                        <div className="text-red-600 text-sm mt-1">{formErrors.maritalStatus}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Vehicle Type
+                      </label>
+                      <div className="flex flex-wrap gap-4">
+                        {["car", "jeep", "mini-bus", "bus", "trailer"].map((type) => (
+                          <label key={type} className="flex items-center">
+                            <Field
+                              type="radio"
+                              name="vehicleType"
+                              value={type}
+                              className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                              disabled={loading}
+                            />
+                            <span className="text-gray-700 capitalize">{type}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {formErrors.vehicleType && (
+                        <div className="text-red-600 text-sm mt-1">{formErrors.vehicleType}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="currentLocation"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Current Location
+                      </label>
+                      <Field
+                        name="currentLocation"
+                        id="currentLocation"
+                        placeholder="Enter current location"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        aria-label="Current location"
+                      />
+                      {formErrors.currentLocation && (
+                        <div className="text-red-600 text-sm mt-1">{formErrors.currentLocation}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="YOE"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Years of Experience
+                      </label>
+                      <Field
+                        name="YOE"
+                        id="YOE"
+                        placeholder="Enter years of experience"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        aria-label="Years of experience"
+                      />
+                      {formErrors.YOE && (
+                        <div className="text-red-600 text-sm mt-1">{formErrors.YOE}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="languageSpoken"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Language Spoken
+                      </label>
+                      <Field
+                        name="languageSpoken"
+                        id="languageSpoken"
+                        placeholder="Enter languages spoken"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        aria-label="Languages spoken"
+                      />
+                      {formErrors.languageSpoken && (
+                        <div className="text-red-600 text-sm mt-1">{formErrors.languageSpoken}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Car Details
+                      </label>
+                      <div className="space-y-4">
                         <Field
                           name="carDetails.model"
-                          placeholder="Model"
-                          className="w-full p-2 border border-gray-300 rounded-lg"
+                          placeholder="Car Model"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          aria-label="Car model"
                         />
                         {formErrors["carDetails.model"] && (
-                          <div className="text-red-500 text-sm">
-                            {formErrors["carDetails.model"]}
-                          </div>
+                          <div className="text-red-600 text-sm">{formErrors["carDetails.model"]}</div>
                         )}
                         <Field
                           name="carDetails.product"
-                          placeholder="Product"
-                          className="w-full p-2 border border-gray-300 rounded-lg"
+                          placeholder="Car Product"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          aria-label="Car product"
                         />
                         {formErrors["carDetails.product"] && (
-                          <div className="text-red-500 text-sm">
-                            {formErrors["carDetails.product"]}
-                          </div>
+                          <div className="text-red-600 text-sm">{formErrors["carDetails.product"]}</div>
                         )}
                         <Field
                           name="carDetails.year"
                           placeholder="Year"
                           type="number"
-                          className="w-full p-2 border border-gray-300 rounded-lg"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          aria-label="Car year"
                         />
                         {formErrors["carDetails.year"] && (
-                          <div className="text-red-500 text-sm">
-                            {formErrors["carDetails.year"]}
-                          </div>
+                          <div className="text-red-600 text-sm">{formErrors["carDetails.year"]}</div>
                         )}
                         <Field
                           name="carDetails.color"
                           placeholder="Color"
-                          className="w-full p-2 border border-gray-300 rounded-lg"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          aria-label="Car color"
                         />
                         {formErrors["carDetails.color"] && (
-                          <div className="text-red-500 text-sm">
-                            {formErrors["carDetails.color"]}
-                          </div>
+                          <div className="text-red-600 text-sm">{formErrors["carDetails.color"]}</div>
                         )}
                         <Field
                           name="carDetails.plateNumber"
                           placeholder="Plate Number"
-                          className="w-full p-2 border border-gray-300 rounded-lg"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          aria-label="Car plate number"
                         />
                         {formErrors["carDetails.plateNumber"] && (
-                          <div className="text-red-500 text-sm">
-                            {formErrors["carDetails.plateNumber"]}
-                          </div>
+                          <div className="text-red-600 text-sm">{formErrors["carDetails.plateNumber"]}</div>
                         )}
-                      </>
-                    )}
+                      </div>
+                    </div>
+                  </>
+                )}
 
-                    <label className="block text-sm font-medium text-gray-700">State</label>
-                    <Field
-                      as="select"
-                      name="location.state"
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                      onChange={(e) => {
-                        setFieldValue("location.state", e.target.value);
-                        setFieldValue("location.lga", ""); // Reset LGA when state changes
-                        geocodeLocation(e.target.value, values.location.lga);
-                      }}
-                    >
-                      <option value="">Select State</option>
-                      {Object.keys(statesAndLgas).map((state) => (
-                        <option key={state} value={state}>
-                          {state}
+                <div>
+                  <label
+                    htmlFor="location.state"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    State
+                  </label>
+                  <Field
+                    as="select"
+                    name="location.state"
+                    id="location.state"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    onChange={(e) => {
+                      setFieldValue("location.state", e.target.value);
+                      setFieldValue("location.lga", "");
+                      geocodeLocation(e.target.value, values.location.lga);
+                    }}
+                    aria-label="Select state"
+                  >
+                    <option value="">Select State</option>
+                    {Object.keys(statesAndLgas).map((state) => (
+                      <option key={state} value={state}>
+                        {state}
+                      </option>
+                    ))}
+                  </Field>
+                  {formErrors["location.state"] && (
+                    <div className="text-red-600 text-sm mt-1">{formErrors["location.state"]}</div>
+                  )}
+                </div>
+                <div>
+                  <label
+                    htmlFor="location.lga"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    LGA
+                  </label>
+                  <Field
+                    as="select"
+                    name="location.lga"
+                    id="location.lga"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    onChange={(e) => {
+                      setFieldValue("location.lga", e.target.value);
+                      geocodeLocation(values.location.state, e.target.value);
+                    }}
+                    aria-label="Select LGA"
+                  >
+                    <option value="">Select LGA</option>
+                    {values.location.state &&
+                      statesAndLgas[values.location.state]?.map((lga) => (
+                        <option key={lga} value={lga}>
+                          {lga}
                         </option>
                       ))}
-                    </Field>
-                    {formErrors["location.state"] && (
-                      <div className="text-red-500 text-sm">
-                        {formErrors["location.state"]}
-                      </div>
-                    )}
-                    <label className="block text-sm font-medium text-gray-700">LGA</label>
-                    <Field
-                      as="select"
-                      name="location.lga"
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                      onChange={(e) => {
-                        setFieldValue("location.lga", e.target.value);
-                        geocodeLocation(values.location.state, e.target.value);
-                      }}
-                    >
-                      <option value="">Select LGA</option>
-                      {values.location.state &&
-                        statesAndLgas[values.location.state]?.map((lga) => (
-                          <option key={lga} value={lga}>
-                            {lga}
-                          </option>
-                        ))}
-                    </Field>
-                    {formErrors["location.lga"] && (
-                      <div className="text-red-500 text-sm">{formErrors["location.lga"]}</div>
-                    )}
-                    <label className="block text-sm font-medium text-gray-700">
-                      Phone Number
-                    </label>
-                    <Field
-                      name="phoneNumber"
-                      placeholder="Phone Number"
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                    />
-                    {formErrors.phoneNumber && (
-                      <div className="text-red-500 text-sm">{formErrors.phoneNumber}</div>
-                    )}
-                    <label className="block text-sm font-medium text-gray-700">
-                      Address
-                    </label>
-                    <Field
-                      name="location.address"
-                      placeholder="address"
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                    />
-                    {formErrors["location.address"] && (
-                      <div className="text-red-500 text-sm">{formErrors.address}</div>
-                    )}
+                  </Field>
+                  {formErrors["location.lga"] && (
+                    <div className="text-red-600 text-sm mt-1">{formErrors["location.lga"]}</div>
+                  )}
+                </div>
 
-                    <div className="flex space-x-4">
-                      <h4 className="font-bold">Gender:</h4>
-                      <label className="flex items-center">
-                        <Field
-                          type="radio"
-                          name="gender"
-                          value="male"
-                          className="mr-2"
-                          disabled={loading}
-                        />
-                        Male
-                      </label>
-                      <label className="flex items-center">
-                        <Field
-                          type="radio"
-                          name="gender"
-                          value="female"
-                          className="mr-2"
-                          disabled={loading}
-                        />
-                        Female
-                      </label>
-                    </div>
-                    {formErrors.gender && (
-                      <div className="text-red-500 text-sm">{formErrors.gender}</div>
-                    )}
+                <div>
+                  <label
+                    htmlFor="phoneNumber"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Phone Number
+                  </label>
+                  <Field
+                    name="phoneNumber"
+                    id="phoneNumber"
+                    placeholder="Enter phone number"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    aria-label="Phone number"
+                  />
+                  {formErrors.phoneNumber && (
+                    <div className="text-red-600 text-sm mt-1">{formErrors.phoneNumber}</div>
+                  )}
+                </div>
 
-                    <div className="flex space-x-3">
-                      {values.role === "client" && (
-                        <button
-                          type="button"
-                          className="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition-colors"
-                          onClick={() => setStep(1)}
-                        >
-                          Back
-                        </button>
-                      )}
-                      <button
-                        type="submit"
-                        className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
-                        disabled={loading || isSubmitting}
-                      >
-                        {loading ? "Submitting..." : "Submit"}
-                      </button>
-                    </div>
+                <div>
+                  <label
+                    htmlFor="location.address"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Address
+                  </label>
+                  <Field
+                    name="location.address"
+                    id="location.address"
+                    placeholder="Enter address"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    aria-label="Address"
+                  />
+                  {formErrors["location.address"] && (
+                    <div className="text-red-600 text-sm mt-1">{formErrors["location.address"]}</div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Gender
+                  </label>
+                  <div className="flex space-x-6">
+                    <label className="flex items-center">
+                      <Field
+                        type="radio"
+                        name="gender"
+                        value="male"
+                        className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                        disabled={loading}
+                      />
+                      <span className="text-gray-700">Male</span>
+                    </label>
+                    <label className="flex items-center">
+                      <Field
+                        type="radio"
+                        name="gender"
+                        value="female"
+                        className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                        disabled={loading}
+                      />
+                      <span className="text-gray-700">Female</span>
+                    </label>
                   </div>
-                )}
-              </Form>
+                  {formErrors.gender && (
+                    <div className="text-red-600 text-sm mt-1">{formErrors.gender}</div>
+                  )}
+                </div>
+
+                <div className="flex space-x-4 pt-4">
+                  {values.role === "client" && (
+                    <button
+                      type="button"
+                      className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+                      onClick={() => setStep(1)}
+                    >
+                      Back
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    disabled={loading || isSubmitting}
+                  >
+                    {loading ? "Submitting..." : "Submit"}
+                  </button>
+                </div>
+              </div>
             )}
-          </Formik>
-        </div>
-      </div>
-    </>
+          </Form>
+        )}
+      </Formik>
+    </div>
+    </div>
+</>
   );
 };
 
