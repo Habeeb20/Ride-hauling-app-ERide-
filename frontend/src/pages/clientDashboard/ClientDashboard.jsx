@@ -24,6 +24,7 @@ import OwnerDashboard from '../Vehicle/OwnerDashboard';
 import RideStatistics from './RideStatistics';
 import ReportDriver from './ReportDriver';
 import HireADriver from './HireADriver';
+import Intro from './Intro';
 import Suggestions from './Suggestions';
     const Navbar = ({ toggleTheme, isDarkTheme, profile }) => (
         <nav className={`fixed top-0 left-0 w-full z-50 shadow p-4 flex justify-between items-center ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
@@ -61,6 +62,7 @@ const ClientDashboard = () => {
   const [isBackgroundOn, setIsBackgroundOn] = useState(true);
   const [bookings, setBookings] = useState([]);
   const navigate = useNavigate();
+  const [showIntro, setShowIntro] = useState(false);
   const location = useLocation();
   const [carPositions, setCarPositions] = useState([
     { x: 50, y: 50, targetX: window.innerWidth / 2, targetY: window.innerHeight / 2 }, // Top-left
@@ -68,6 +70,24 @@ const ClientDashboard = () => {
     { x: 50, y: window.innerHeight - 50, targetX: window.innerWidth / 2, targetY: window.innerHeight / 2 }, // Bottom-left
     { x: window.innerWidth - 50, y: window.innerHeight - 50, targetX: window.innerWidth / 2, targetY: window.innerHeight / 2 }, // Bottom-right
   ]);
+
+
+
+  ///intro modal
+
+   useEffect(() => {
+    const hasSeenIntro = localStorage.getItem('hasSeenIntro');
+    if (!hasSeenIntro) {
+      setShowIntro(true); // Show modal if not seen
+      localStorage.setItem('hasSeenIntro', 'true'); // Mark as seen
+    }
+  }, []);
+
+  // Function to close the modal
+  const closeIntro = () => {
+    setShowIntro(false);
+  };
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -125,6 +145,12 @@ const ClientDashboard = () => {
     setIsDarkTheme(!isDarkTheme);
   };
 
+   const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+
   const renderMainContent = () => {
     return (
       <div className={`flex-1 p-6 lg:p-8 ${isDarkTheme ? 'bg-gray-800' : 'bg-gray-100'}`}>
@@ -164,26 +190,7 @@ const ClientDashboard = () => {
     <>
       <Navbar toggleTheme={toggleTheme} isDarkTheme={isDarkTheme} profile={profile} />
     
-{/* 
-   
-      {isBackgroundOn ? (
-        <div
-          className="absolute inset-0 bg-cover bg-center animate-car-cruise"
-          style={{
-            backgroundImage: `url(${im2})`,
-            opacity: 0.10,
-            zIndex: 0,
-          }}
-        ></div>
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 0,   opacity:0.15 }}>
-          <img
-            src={im2}
-            alt="Static car"
-            className="w-74 h-min-screen object-contain opacity-50"
-          />
-        </div>
-      )}  */}
+
       <div  className={`flex min-h-screen font-sans ${isDarkTheme ? 'bg-gray-800' : 'bg-transparent'}`}
       style={{
         backgroundImage: isDarkTheme
@@ -480,10 +487,14 @@ const ClientDashboard = () => {
         </li>
         <li>
           <Link
+          onClick={handleLogout}
             to="/login"
             className={`flex items-center ${isDarkTheme ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-gray-800'}`}
           >
-            <FaUser className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-500'} mr-3`} /> Logout
+       
+                 <FaUser className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-500'} mr-3`} /> Logout
+  
+         
           </Link>
         </li>
       </ul>
@@ -514,6 +525,29 @@ const ClientDashboard = () => {
 };
 
 export default ClientDashboard;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

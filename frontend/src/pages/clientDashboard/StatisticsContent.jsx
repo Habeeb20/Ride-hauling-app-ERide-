@@ -5,13 +5,14 @@ import { FaCar, FaChartBar, FaCheckCircle, FaTimesCircle } from 'react-icons/fa'
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-
+import Intro from './Intro';
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const StatisticsContent = ({ isDarkTheme }) => {
   const [profile, setProfile] = useState({});
   const [clicks, setClicks] = useState(0);
+   const [showIntro, setShowIntro] = useState(false);
   const [profileId, setProfileId] = useState("")
   const [clientStats, setClientStats] = useState({
     totalBookings: 0,
@@ -22,6 +23,21 @@ const StatisticsContent = ({ isDarkTheme }) => {
     cancelledBookings: 0,
   });
   const navigate = useNavigate();
+
+  // Check if modal has been shown before (using localStorage)
+    useEffect(() => {
+      const hasSeenIntro = localStorage.getItem('hasSeenIntro');
+      if (!hasSeenIntro) {
+        setShowIntro(true); // Show modal if not seen
+        localStorage.setItem('hasSeenIntro', 'true'); // Mark as seen
+      }
+    }, []);
+  
+    // Function to close the modal
+    const closeIntro = () => {
+      setShowIntro(false);
+    };
+  
 
   // Fetch data using the provided useEffect
   useEffect(() => {
@@ -128,6 +144,11 @@ const StatisticsContent = ({ isDarkTheme }) => {
 
     fetchData();
   }, [navigate]);
+  const [isModalOpen, setIsModalOpen] = useState(true);
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
 
   // Vehicle Type Distribution (unchanged)
   const vehicleTypes = clientStats.totalBookings > 0
@@ -224,8 +245,40 @@ const StatisticsContent = ({ isDarkTheme }) => {
   };
 
   return (
-    <div className={`p-6 lg:p-8 ${isDarkTheme ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800'}`}>
+    <>
+        {/* {showIntro && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+
+          <div className="">
+         
+            <Intro />
+            
+            <button
+              onClick={closeIntro}
+              className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )} */}
+      {isModalOpen && <Intro closeModal={closeModal} />}
+       <div className={`p-6 lg:p-8 ${isDarkTheme ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800'}`}>
       <h2 className="text-2xl font-bold mb-6">Statistics</h2>
+
 
   
 
@@ -334,6 +387,9 @@ const StatisticsContent = ({ isDarkTheme }) => {
         </div>
       </div>
     </div>
+  
+    </>
+   
   );
 };
 

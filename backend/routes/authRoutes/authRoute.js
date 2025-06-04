@@ -401,7 +401,7 @@ authRouter.get("/dashboard", verifyToken, async(req, res) => {
          profile,
       });
     } catch (error) {
-   
+   console.log(error)
       return res.status(500).json({
         status: false,
         message: "An error occurred",

@@ -47,6 +47,7 @@ import {nigeriaAirportsByState} from "../../airportAndState.js"
     { icon: FaBus, label: "bus travel", color: "bg-yellow-100",  onClick: () => setShowLorryModal(true) },
     { icon: FaTruck, label: "pickup van", color: "bg-green-100",  onClick: () => setShowLorryModal(true) },
     { icon: FaTrailer, label: "pickup trailer", color: "bg-pink-100",  onClick: () => setShowLorryModal(true) },
+    { icon: FaTrailer, label: "charter a car", color: "bg-pink-100",  onClick: () => setShowLorryModal(true) },
   
   ];
 

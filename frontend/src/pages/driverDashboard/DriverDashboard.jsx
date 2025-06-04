@@ -19,6 +19,7 @@ import DriverStatistics from './DriverStatistics';
 import FreightDriver from './FreightDriver';
 import DriverRideStatistics from './DriverRideStatistics';
 import WantToBeHired from './WantToBeHired';
+import ProfilePage from './ProfilePage';
 
     const Navbar = ({ toggleTheme, isDarkTheme, profile }) => (
         <nav className={`fixed top-0 left-0 w-full z-50 shadow p-4 flex justify-between items-center ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
@@ -138,6 +139,7 @@ const DriverDashboard = () => {
         {activeTab === 'Dashboard' && <DriverStatistics isDarkTheme={isDarkTheme} />}
         {activeTab === 'Orders' && <AvailableRidesOrder isDarkTheme={isDarkTheme} />}
         {activeTab === 'wanttobehired' && <WantToBeHired isDarkTheme={isDarkTheme} />}
+        {activeTab === 'profile' && <ProfilePage isDarkTheme={isDarkTheme} />}
 
       </div>
     );
@@ -147,12 +149,39 @@ const DriverDashboard = () => {
     <>
       <Navbar toggleTheme={toggleTheme} isDarkTheme={isDarkTheme} profile={profile} />
       <div className={`flex min-h-screen font-sans ${isDarkTheme ? 'bg-gray-100' : 'bg-gray-200'}`}>
-        <div
+            <button
+  className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-GreenColor text-white focus:outline-none"
+  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+  aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+>
+  {isSidebarOpen ? (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  ) : (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  )}
+</button>
+
+          <div
+        
           className={`fixed inset-y-0 left-0 w-64 bg-GreenColor shadow-lg transform ${
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           } lg:translate-x-0 transition-transform duration-300 ease-in-out z-50 lg:static lg:w-1/5 p-6 flex flex-col justify-between ${
     isDarkTheme ? 'bg-GreenColor text-white' : 'bg-customGreen text-gray-800'}`}
         >
+
+             <button
+  className={`lg:hidden fixed top-4 right-4 z-60 p-2 rounded-md bg-GreenColor text-white focus:outline-none ${isSidebarOpen ? 'block' : 'hidden'}`}
+  onClick={() => setIsSidebarOpen(false)}
+  aria-label="Close sidebar"
+>
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+</button>
           <div>
             <div className="flex items-center mb-8">
               <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-900 rounded-md mr-2"></div>
@@ -280,6 +309,21 @@ const DriverDashboard = () => {
           </button>
         </li>
         <li>
+          <button
+            onClick={() => {
+              setActiveTab('profile');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'profile'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaMapMarkedAlt className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Profile
+          </button>
+        </li>
+        <li>
           <Link
             to="/login"
             className={`flex items-center ${isDarkTheme ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-gray-800'}`}
@@ -301,9 +345,7 @@ const DriverDashboard = () => {
               <p className={`${isDarkTheme ? 'text-white' : 'text-gray-800'} font-semibold`}>
                 {profile.userId?.firstName || 'User'} {profile.userId?.lastName || ''}
               </p>
-              <Link to="#" className={`${isDarkTheme ? 'text-gray-400 hover:underline' : 'text-gray-600 text-sm hover:underline'}`}>
-                Visit site
-              </Link>
+       
             </div>
           </div>
         </div>

@@ -1,284 +1,248 @@
 import mongoose from "mongoose";
 import slugify from "slugify";
+
 const profileSchema = new mongoose.Schema(
   {
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String,
       ref: "Auth",
-    
-    },
-
-    userEmail: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-    },
-  
-    profilePicture:{
-        type:String,
-       
-    },
-    gender: {
-      type:String,
       required: true,
-  },
-    isOnline: { type: Boolean, default: false },
+      unique: true,
+    },
+    userEmail: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
+    slug: {
+      type: String,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    isDriver: {
+      type: Boolean,
+      required: true,
+    },
     question: {
       type: String,
-      enum: ["student", "passenger"],
+      enum: ["student", "passenger", ""],
       required: function () {
-        return this.role === "client";
+        return !this.isDriver;
       },
     },
-    schoolIdUrl: {
-      type: String, 
-      required: function () {
-        return this.role === "client" && this.question === "student";
-      },
+    gender: {
+      type: String,
+      enum: ["male", "female"],
+      required: true,
     },
-    driverLicense: {
-      type: String, 
-      required: function () {
-        return this.role === "driver";
-      },
-    },
-
-
-
-    certificateTraining: {
-      type: String, 
-      required: function () {
-        return this.role === "driver";
-      },
-    },
-    maritalStatus: {
-      type: String, 
-      required: function () {
-        return this.role === "driver";
-      },
-    },
-    YOE: {
-      type: String, 
-      required: function () {
-        return this.role === "driver";
-      },
-    },
-    currentLocation: {
-      type: String, 
-      required: function () {
-        return this.role === "driver";
-      },
-    },
-    
-    languageSpoken: {
-      type: String, 
-      required: function () {
-        return this.role === "driver";
-      },
-    },
-    gearType: {
-      type: String, 
-      required: function () {
-        return this.role === "driver";
-      },
-    },
-    VehicleType: {
-      type: String, 
-      required: function () {
-        return this.role === "driver";
-      },
-    },
-
-
-
-
-
-
-
-    carDetails: {
-      model: {
-        type: String,
-        required: function () {
-          return this.role === "driver";
-        },
-      },
-      product: {
-        type: String,
-        required: function () {
-          return this.role === "driver";
-        },
-      },
-      year: {
-        type: Number,
-        required: function () {
-          return this.role === "driver";
-        },
-      },
-      color: {
-        type: String,
-        required: function () {
-          return this.role === "driver";
-        },
-      },
-      plateNumber: {
-        type: String,
-        required: function () {
-          return this.role === "driver";
-        },
-      },
-    },
-  
-    carPicture:{
-        type:String,
-        required: function(){
-            return this.role === "driver"
-        }
-    },
-
-    available:{
-      type: Boolean,
-      default: true
-
-    },
-
-    availableToBeHired:{
-      type: Boolean,
-      default: false
-
-    },
-      availableToBeHiredDetails: {
-      durationType: {
-        type: String,
-        enum: ["day", "days", "week", "weeks", "month", "months", "permanent", "temporary"],
-        required: function () {
-          return this.availableToBeHired === true;
-        },
-      },
-      durationValue: {
-        type: Number,
-        required: function () {
-          return (
-            this.availableToBeHired === true &&
-            ["day", "days", "week", "weeks", "month", "months"].includes(this.availableToBeHiredDetails?.durationType)
-          );
-        },
-        min: [1, "Duration must be at least 1"],
-      },
-      minSalary: {
-        type: Number,
-        required: function () {
-          return this.availableToBeHired === true;
-        },
-        min: [0, "Minimum salary cannot be negative"],
-      },
-      interstateTravel: {
-        type: Boolean,
-        required: function () {
-          return this.availableToBeHired === true;
-        },
-      
-      },
-      typeOfCar: {
-        type: String,
-        required: function () {
-          return this.availableToBeHired === true;
-        },
-      
-      },
-      typeOfTransmission: {
-        type: String,
-        required: function () {
-          return this.availableToBeHired === true;
-        },
-      },
-      choice: {
-        type: String,
-        required: function () {
-          return this.availableToBeHired === true;
-        },
-      },
-      startDate: {
-        type: Date,
-        required: function () {
-          return this.availableToBeHired === true;
-        },
-        default: Date.now,
-      },
-    },
-    rating: { type: Number, default: 0 }, // Average rating
-    rideCount: { type: Number, default: 0 },
     location: {
-      state: { type: String, required: true },
-      lga: { type: String, required: true },
-      address: { type:String, required: true },
-      coordinates: { lat: Number, lng: Number }, 
+      type: Object,
+      required: true,
     },
-    slug: { type: String, unique: true },
-comments: [
-    {
-      name: String,
-      text: String,
-      createdAt: { type: Date, default: Date.now }
-    }
-  ],
-  clicks: { type: Number, default: 0 }, 
-  shares: { type: Number, default: 0 },
     phoneNumber: {
       type: String,
       required: true,
+      minlength: 11,
+      maxlength: 11,
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
+    profilePicture: {
+      type: String,
+      required: false,
+    },
+    schoolId: {
+      type: String,
+      required: function () {
+        return !this.isDriver && this.question === "student";
+      },
+    },
+    carDetails: {
+      type: Object,
+      required: function () {
+        return this.isDriver;
+      },
+    },
+    carPicture: {
+      type: String,
+      required: function () {
+        return this.isDriver;
+      },
+    },
+    driverLicense: {
+      type: String,
+      required: function () {
+        return this.isDriver;
+      },
+    },
+    certificateTraining: {
+      type: String,
+      required: function () {
+        return this.isDriver;
+      },
+    },
+    maritalStatus: {
+      type: String,
+      enum: ["single", "married", "divorced", "widowed"],
+      required: function () {
+        return this.isDriver;
+      },
+    },
+    YOE: {
+      type: String,
+      required: function () {
+        return this.isDriver;
+      },
+    },
+    currentLocation: {
+      type: String,
+      required: function () {
+        return this.isDriver;
+      },
+    },
+    languageSpoken: {
+      type: String,
+      required: function () {
+        return this.isDriver;
+      },
+    },
+    gearType: {
+      type: String,
+      enum: ["manual", "automatic", "both"],
+      required: function () {
+        return this.isDriver;
+      },
+    },
+    vehicleType: {
+      type: String,
+      enum: ["car", "jeep", "mini-bus", "bus", "trailer"],
+      required: function () {
+        return this.isDriver;
+      },
+    },
+    driverRoles: {
+      type: [String],
+      enum: ["ride-hauling", "airport", "chartered", "hired"],
+      required: function () {
+        return this.isDriver;
+      },
+      default:"ride-hauling",
+      // validate: {
+      //   validator: function (v) {
+      //     return v.length > 0;
+      //   },
+      //   message: "At least one driver role must be selected",
+      // },
+    },
+    interstate: {
+      type: Boolean,
+      required: function () {
+        return this.isDriver;
+      },
+    },
+    availableToBeHiredDetails: {
+      type: {
+        durationType: {
+          type: String,
+          enum: [
+            "day",
+            "days",
+            "week",
+            "weeks",
+            "month",
+            "months",
+            "permanent",
+            "temporary",
+          ],
+          required: true,
+        },
+        durationValue: {
+          type: Number,
+          min: 1,
+          required: function () {
+            return [
+              "day",
+              "days",
+              "week",
+              "weeks",
+              "month",
+              "months",
+            ].includes(this.durationType);
+          },
+        },
+        minSalary: {
+          type: Number,
+          min: 0,
+          required: true,
+        },
+        interstateTravel: {
+          type: Boolean,
+          required: true,
+        },
+        typeOfCar: {
+          type: String,
+          enum: ["car", "jeep", "mini-bus", "bus", "trailer"],
+          required: true,
+        },
+        typeOfTransmission: {
+          type: String,
+          enum: ["automatic", "manual", "both"],
+          required: true,
+        },
+        choice: {
+          type: String,
+          enum: ["private with accommodation", "private with no accommodation", "commercial with accommodation", "commercial with no accommodation"],
+          required: true,
+        },
+        startDate: {
+          type: Date,
+          required: true,
+        },
+        endDate: {
+          type: Date,
+          required: function () {
+            return this.durationType !== "permanent";
+          },
+        },
+        timeToStart: {
+          type: String,
+          required: true,
+          // match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9] (AM|PM)$/,
+        },
+      },
+      required: function () {
+        return this.isDriver && this.driverRoles.includes("hired");
+      },
+    },
+    verified: {
+      type: Boolean,
+      default: false,
+    },
+    ratings: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }
 );
 
-profileSchema.pre("save", function(next){
-  if(!this.slug){
-    this.slug=slugify(this.userEmail, {lower: true, strict: true})
-  }
-  next()
-})
+// Pre-save hook to generate slug from userEmail
+profileSchema.pre("save", async function (next) {
+  if (this.isModified("userEmail")) {
+    let baseSlug = slugify(this.userEmail, { lower: true, strict: true });
+    let slug = baseSlug;
+    let count = 1;
 
+    // Ensure slug uniqueness
+    while (await mongoose.models.Profile.findOne({ slug })) {
+      slug = `${baseSlug}-${count}`;
+      count++;
+    }
+
+    this.slug = slug;
+  }
+  next();
+});
 
 export default mongoose.model("Profile", profileSchema);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
