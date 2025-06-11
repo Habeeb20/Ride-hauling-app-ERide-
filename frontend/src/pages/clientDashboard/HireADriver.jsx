@@ -974,8 +974,9 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { toast } from "sonner";
+
+
 import { FaEye, FaTimes, FaComment } from "react-icons/fa";
 import io from "socket.io-client";
 
@@ -1477,12 +1478,12 @@ const HireADriver = () => {
                 >
                   <FaEye className="mr-2" /> View More
                 </button>
-                <button
+                {/* <button
                   onClick={() => openChatModal(driver)}
                   className="flex items-center bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
                 >
                   <FaComment className="mr-2" /> Chat
-                </button>
+                </button> */}
                 <button
                   onClick={() => openBookingModal(driver)}
                   className="flex items-center bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors"

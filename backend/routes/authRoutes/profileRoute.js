@@ -26,491 +26,6 @@ cloudinary.config({
 
 
 
-// profileRoute.post("/createprofile", async (req, res) => {
-//     const {
-//       userEmail,
-//       gender,
-//       location,
-//       phoneNumber,
-//       carDetails,
-//       question,
-//       profilePicture, 
-//       schoolIdUrl,      
-//       carPicture,    
-//       driverLicense,
-//       certificateTraining,
-//       maritalStatus,
-//       YOE,
-//       currentLocation,
-//       languageSpoken,
-//       gearType,
-//       vehicleType,
-
-//     } = req.body;
-  
-//     try {
-//       console.log("Request Body:", req.body);
-  
-//       // Validate required fields
-//       if (!userEmail  || !location || !phoneNumber || !profilePicture || !gender) {
-//         return res.status(400).json({
-//           status: false,
-//           message: "Missing required fields: userEmail, role, location, phoneNumber, or profilePictureUrl",
-//         });
-//       }
-  
-   
-  
-//       if (phoneNumber.length > 11) {
-//         return res.status(400).json({ message: "Phone number should not exceed 11 characters" });
-//       }
-//       if (phoneNumber.length < 11) {
-//         return res.status(400).json({ message: "Phone number shouldn't be less than 11 characters" });
-//       }
-  
-//       const user = await User.findOne({ email: userEmail });
-//       if (!user) {
-//         return res.status(404).json({
-//           status: false,
-//           message: "User not found",
-//         });
-//       }
-  
-//       const role = user.role;
-//       if (!role || !["client", "driver"].includes(role)) {
-//         return res.status(400).json({
-//           status: false,
-//           message: "Invalid or missing role in user profile. Role must be 'passenger' or 'driver'",
-//         });
-//       }
-  
-//       let parsedLocation;
-//       try {
-//         parsedLocation = JSON.parse(location);
-//         if (!parsedLocation.state || !parsedLocation.lga || !parsedLocation.address) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Location must include state,lga and address",
-//           });
-//         }
-//       } catch (e) {
-//         return res.status(400).json({
-//           status: false,
-//           message: "Invalid location JSON format",
-//         });
-//       }
-  
-//       // Base profile data
-//       const profileData = {
-//         userEmail,
-//         userId: user._id,
-//         gender,
-//         location: parsedLocation,
-//         phoneNumber,
-//         profilePicture, 
-
-//       };
-  
-//       // Handle passenger role
-//       if (role === "client") {
-//         if (!question || !["student", "passenger"].includes(question)) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Question is required for client role and must be 'student' or 'passenger'",
-//           });
-//         }
-//         profileData.question = question;
-  
-//         if (question === "student") {
-//           if (!schoolIdUrl) {
-//             return res.status(400).json({
-//               status: false,
-//               message: "School ID URL is required for student passengers",
-//             });
-//           }
-//           profileData.schoolIdUrl = schoolIdUrl; // Use the URL from frontend
-//         }
-//       }
-  
-//       // Handle driver role
-//       if (role === "driver") {
-//         if (!carPicture) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Car picture URL is required for drivers",
-//           });
-//         }
-//         if (!driverLicense) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Driver's license URL is required",
-//           });
-//         }
-//         if (!certificateTraining) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Driver's cerfitificate is required",
-//           });
-//         }
-//         if (!maritalStatus) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Driver's marital Status is required",
-//           });
-//         }
-//         if (!YOE) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Driver's years of experience is required",
-//           });
-//         }
-//         if (!currentLocation) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Driver's years of experience is required",
-//           });
-//         }
-//         if (!languageSpoken) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Driver's preferred language is required",
-//           });
-//         }
-//         if (!gearType) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Driver's gear type is required",
-//           });
-//         }
-//         if (!vehicleType) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Driver's vehicle type is required",
-//           });
-//         }
-
-
-//         profileData.carPicture = carPicture;    
-//         profileData.driverLicense = driverLicense;
-//         profileData.certificateTraining=certificateTraining
-//         profileData.maritalStatus=maritalStatus
-//         profileData.YOE=YOE
-//         profileData.currentLocation=currentLocation
-//         profileData.languageSpoken=languageSpoken
-//         profileData.gearType=gearType
-//         profileData.vehicleType=vehicleType 
-
-  
-//         if (!carDetails) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "carDetails is required for drivers",
-//           });
-//         }
-  
-//         let parsedCarDetails;
-//         try {
-//           parsedCarDetails = JSON.parse(carDetails);
-//           const requiredFields = ["model", "product", "year", "color", "plateNumber"];
-//           const missingFields = requiredFields.filter((field) => !parsedCarDetails[field]);
-//           if (missingFields.length > 0) {
-//             return res.status(400).json({
-//               status: false,
-//               message: `Missing required car details: ${missingFields.join(", ")}`,
-//             });
-//           }
-//         } catch (e) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Invalid carDetails JSON format",
-//           });
-//         }
-//         profileData.carDetails = parsedCarDetails;
-//       }
-  
-//       // Save profile
-//       const profile = new Profile(profileData);
-//       await profile.save();
-  
-//       res.status(201).json({
-//         status: true,
-//         message: "Profile created successfully",
-//         role,
-//         data: profile,
-//       });
-//     } catch (error) {
-//       console.error("Error in /createprofile:", error);
-  
-//       if (error.name === "ValidationError") {
-//         return res.status(400).json({
-//           status: false,
-//           message: "Validation error: " + error.message,
-//         });
-//       }
-  
-//       res.status(500).json({
-//         status: false,
-//         message: "Server error",
-//         error: error.message,
-//       });
-//     }
-//   });
-
-
-
-
-
-// profileRoute.post("/createprofile", async (req, res) => {
-//   const {
-//     userEmail,
-//     gender,
-//     location,
-//     phoneNumber,
-//     carDetails,
-//     question,
-//     profilePicture,
-//     schoolIdUrl,
-//     carPicture,
-//     driverLicense,
-//     certificateTraining,
-//     maritalStatus,
-//     YOE,
-//     currentLocation,
-//     languageSpoken,
-//     gearType,
-//     vehicleType,
-//     driverRoles,
-//     interstate,
-//     availableToBeHiredDetails,
-//   } = req.body;
-
-//   try {
-//     console.log("Request Body:", req.body);
-
-//     // Validate required fields
-//     if (!userEmail || !location || !phoneNumber || !gender) {
-//       return res.status(400).json({
-//         status: false,
-//         message: "Missing required fields: userEmail, location, phoneNumber, or gender",
-//       });
-//     }
-
-//     if (phoneNumber.length !== 11) {
-//       return res.status(400).json({
-//         status: false,
-//         message: "Phone number must be exactly 11 characters",
-//       });
-//     }
-
-//     const user = await User.findOne({ email: userEmail });
-//     if (!user) {
-//       return res.status(404).json({
-//         status: false,
-//         message: "User not found",
-//       });
-//     }
-
-//     const role = user.role;
-//     if (!role || !["client", "driver"].includes(role)) {
-//       return res.status(400).json({
-//         status: false,
-//         message: "Invalid role. Must be 'client' or 'driver'",
-//       });
-//     }
-
-//     let parsedLocation;
-//     try {
-//       parsedLocation = typeof location === 'string' ? JSON.parse(location) : location;
-//       if (!parsedLocation.state || !parsedLocation.lga || !parsedLocation.address) {
-//         return res.status(400).json({
-//           status: false,
-//           message: "Location must include state, lga, and address",
-//         });
-//       }
-//     } catch (e) {
-//       return res.status(400).json({
-//         status: false,
-//         message: "Invalid location format",
-//       });
-//     }
-
-//     // Base profile data
-//     const profileData = {
-//       userEmail: userEmail,
-//       userId: user._id,
-//       gender,
-//       location: parsedLocation,
-//       phoneNumber,
-//       profilePicture,
-//       isDriver: role === "driver",
-//     };
-
-//     // Handle client role
-//     if (role === "client") {
-//       if (!question || !["student", "passenger"].includes(question)) {
-//         return res.status(400).json({
-//           status: false,
-//           message: "Question is required for client role and must be 'student' or 'passenger'",
-//         });
-//       }
-//       profileData.question = question;
-
-//       if (question === "student") {
-//         if (!schoolIdUrl) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "School ID URL is required for student clients",
-//           });
-//         }
-//         profileData.schoolIdUrl = schoolIdUrl;
-//       }
-//     }
-
-//     // Handle driver role
-//     if (role === "driver") {
-//       if (!carPicture || !driverLicense || !certificateTraining || !maritalStatus || !YOE ||
-//           !currentLocation || !languageSpoken || !gearType || !vehicleType) {
-//         return res.status(400).json({
-//           status: false,
-//           message: "Missing required driver fields: carPicture, driverLicense, certificateTraining, maritalStatus, YOE, currentLocation, languageSpoken, gearType, or vehicleType",
-//         });
-//       }
-
-//       if (!Array.isArray(driverRoles) || driverRoles.length === 0 ||
-//           !driverRoles.every(role => ["ride-hauling", "airport", "chartered", "hired"].includes(role))) {
-//         return res.status(400).json({
-//           status: false,
-//           message: "driverRoles must be a non-empty array containing valid roles: ride-hauling, airport, chartered, hired",
-//         });
-//       }
-
-//       if (typeof interstate !== 'boolean') {
-//         return res.status(400).json({
-//           status: false,
-//           message: "interstate must be a boolean value",
-//         });
-//       }
-
-//       let parsedCarDetails;
-//       try {
-//         parsedCarDetails = typeof carDetails === 'string' ? JSON.parse(carDetails) : carDetails;
-//         const requiredFields = ["model", "product", "year", "color", "plateNumber"];
-//         const missingFields = requiredFields.filter(field => !parsedCarDetails[field]);
-//         if (missingFields.length > 0) {
-//           return res.status(400).json({
-//             status: false,
-//             message: `Missing required car details: ${missingFields.join(", ")}`,
-//           });
-//         }
-//       } catch (e) {
-//         return res.status(400).json({
-//           status: false,
-//           message: "Invalid carDetails format",
-//         });
-//       }
-
-//       profileData.carPicture = carPicture;
-//       profileData.driverLicense = driverLicense;
-//       profileData.certificateTraining = certificateTraining;
-//       profileData.maritalStatus = maritalStatus;
-//       profileData.YOE = YOE;
-//       profileData.currentLocation = currentLocation;
-//       profileData.languageSpoken = languageSpoken;
-//       profileData.gearType = gearType;
-//       profileData.VehicleType = vehicleType;
-//       profileData.carDetails = parsedCarDetails;
-//       profileData.driverRoles = driverRoles;
-//       profileData.interstate = interstate;
-
-//       if (driverRoles.includes("hired")) {
-//         if (!availableToBeHiredDetails) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "availableToBeHiredDetails is required when hired role is selected",
-//           });
-//         }
-
-//         let parsedHiredDetails;
-//         try {
-//           parsedHiredDetails = typeof availableToBeHiredDetails === 'string' ? JSON.parse(availableToBeHiredDetails) : availableToBeHiredDetails;
-//           const requiredFields = ["durationType", "minSalary", "interstateTravel", "typeOfCar", "typeOfTransmission", "choice", "startDate"];
-//           const missingFields = requiredFields.filter(field => parsedHiredDetails[field] === undefined);
-//           if (missingFields.length > 0) {
-//             return res.status(400).json({
-//               status: false,
-//               message: `Missing required hired details: ${missingFields.join(", ")}`,
-//             });
-//           }
-//           if (!["day", "days", "week", "weeks", "month", "months", "permanent", "temporary"].includes(parsedHiredDetails.durationType)) {
-//             return res.status(400).json({
-//               status: false,
-//               message: "Invalid durationType",
-//             });
-//           }
-//           if (["day", "days", "week", "weeks", "month", "months"].includes(parsedHiredDetails.durationType) &&
-//               (!parsedHiredDetails.durationValue || parsedHiredDetails.durationValue < 1)) {
-//             return res.status(400).json({
-//               status: false,
-//               message: "durationValue is required and must be at least 1 for non-permanent/temporary durations",
-//             });
-//           }
-//         } catch (e) {
-//           return res.status(400).json({
-//             status: false,
-//             message: "Invalid availableToBeHiredDetails format",
-//           });
-//         }
-//         profileData.availableToBeHiredDetails = parsedHiredDetails;
-//       }
-//     }
-
-//     // Save profile
-//     const profile = new Profile(profileData);
-//     await profile.save();
-
-//     res.status(201).json({
-//       status: true,
-//       message: "Profile created successfully",
-//       isDriver: role === "driver",
-//       data: profile,
-//     });
-//   } catch (error) {
-//     console.error("Error in /createprofile:", error);
-
-//     if (error.name === "ValidationError") {
-//       return res.status(400).json({
-//         status: false,
-//         message: "Validation error: " + error.message,
-//       });
-//     }
-
-//     res.status(500).json({
-//       status: false,
-//       message: "Server error",
-//       error: error.message,
-//     });
-//   }
-// });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 profileRoute.post("/createprofile", async (req, res) => {
@@ -1284,6 +799,46 @@ profileRoute.put(
   })
 );
 
+
+
+profileRoute.get("/user/:id", verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Ensure the requester is fetching their own data
+    if (id !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    // Fetch user
+    const user = await User.findById(id).select("-password"); // Exclude password
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Fetch profile
+    const profile = await Profile.findOne({ userId: id });
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // Combine user and profile data
+    const userData = {
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        phoneNumber: profile.phoneNumber,
+      },
+    };
+
+    res.status(200).json(userData);
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 

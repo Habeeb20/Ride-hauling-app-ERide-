@@ -23,6 +23,8 @@ import Message from "./model/auth/messageSchema.js";
 import jwt from "jsonwebtoken"
 import { redisClient, connectRedis } from "./redis.js";
 import bookingRoute from "./routes/bookingRoute.js"
+import airportRoutes from "./routes/authRoutes/airportRoute.js"
+import rentalR from  "./routes/authRoutes/rentalRoute.js"
 
 dotenv.config();
 
@@ -303,6 +305,8 @@ app.use("/api/rental", rentalRoutes);
 app.use("/api/reports", reportRouter);
 app.use("/api/messages", messageRouter)
 app.use("/api/bookings", bookingRoute )
+app.use("/api/airport", airportRoutes);
+app.use("/api/rentals", rentalR);
 // Error handling
 app.use((err, req, res, next) => {
   console.error("Error:", err.stack);

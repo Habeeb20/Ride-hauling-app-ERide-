@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FaFacebookF, FaGoogle, FaTwitter, FaUserCheck } from "react-icons/fa";
+import { FaFacebookF, FaGoogle, FaTwitter, FaUserCheck, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import axios from "axios";
@@ -9,9 +9,14 @@ import im from "../../assets/Board Cover.jpg";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,6 +32,7 @@ const Login = () => {
 
       if (response.data.status) {
         localStorage.setItem("token", response.data.token);
+        localStorage.setItem("userId", response.data._id);
         const role = response.data.role;
      
         const message = response.data?.message
@@ -36,7 +42,7 @@ const Login = () => {
             ? "Login successful as Driver! Redirecting to Driver Dashboard..."
             : "Login successful as Passenger! Redirecting to Passenger Dashboard...";
 
-        toast.success( message, {
+        toast.success(message, {
           style: { background: "#4CAF50", color: "white", fontSize: "bold" },
         });
      
@@ -68,12 +74,11 @@ const Login = () => {
     <>
       <Navbar />
       <div className="min-h-screen flex items-center justify-center bg-white px-4 relative overflow-hidden">
-        {/* Animated Car Background */}
         <div
           className="absolute inset-0 bg-cover bg-center animate-car-cruise"
           style={{
             backgroundImage: `url(${im})`,
-            opacity: 0.15, // Subtle to keep focus on the form
+            opacity: 0.15,
             zIndex: 0,
           }}
         ></div>
@@ -100,19 +105,26 @@ const Login = () => {
               />
             </div>
 
-            <div>
+            <div className="relative">
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full p-3 border border-e-ride-purple rounded-full focus:outline-none focus:ring-2 focus:ring-e-ride-purple"
+                className="w-full p-3 pr-10 border border-e-ride-purple rounded-full focus:outline-none focus:ring-2 focus:ring-e-ride-purple"
                 required
               />
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 top-7"
+              >
+                {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+              </button>
             </div>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -125,8 +137,8 @@ const Login = () => {
               {loading ? "Signing In..." : "SIGN IN"}
             </button>
           </form>
-
-          {/* <div className="mt-4 text-center">
+{/* 
+          <div className="mt-4 text-center">
             <p className="text-sm text-gray-600">or connect with</p>
             <div className="flex justify-center space-x-4 mt-2">
               <button
@@ -163,7 +175,3 @@ const Login = () => {
 };
 
 export default Login;
-
-
-
-

@@ -20,6 +20,9 @@ import FreightDriver from './FreightDriver';
 import DriverRideStatistics from './DriverRideStatistics';
 import WantToBeHired from './WantToBeHired';
 import ProfilePage from './ProfilePage';
+import GetAirport from './GetAirport';
+
+import GetChartered from './GetChartered';
 
     const Navbar = ({ toggleTheme, isDarkTheme, profile }) => (
         <nav className={`fixed top-0 left-0 w-full z-50 shadow p-4 flex justify-between items-center ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
@@ -140,6 +143,8 @@ const DriverDashboard = () => {
         {activeTab === 'Orders' && <AvailableRidesOrder isDarkTheme={isDarkTheme} />}
         {activeTab === 'wanttobehired' && <WantToBeHired isDarkTheme={isDarkTheme} />}
         {activeTab === 'profile' && <ProfilePage isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Airport-Rides' && <GetAirport isDarkTheme={isDarkTheme} />}
+        {activeTab === 'Charter' && <GetChartered isDarkTheme={isDarkTheme} />}
 
       </div>
     );
@@ -291,6 +296,36 @@ const DriverDashboard = () => {
             }`}
           >
             <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Deliveries available
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('Airport-Rides');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'Airport-Rides'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Airport rides
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => {
+              setActiveTab('Charter');
+              setIsSidebarOpen(false);
+            }}
+            className={`flex items-center w-full text-left ${
+              activeTab === 'Charter'
+                ? `${isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold'}`
+                : `${isDarkTheme ? 'text-gray-300 hover:text-white' : 'text-black hover:text-gray-800'}`
+            }`}
+          >
+            <FaCar className={`${isDarkTheme ? 'text-gray-300' : 'text-black'} mr-3`} /> Chartered Rides
           </button>
         </li>
         <li>

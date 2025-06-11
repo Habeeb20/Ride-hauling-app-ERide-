@@ -123,22 +123,22 @@ const StatisticsContent = ({ isDarkTheme }) => {
         if (error.response?.status === 403) {
             if (error.response?.data?.error.includes('Unauthorized')) {
               toast.error('Unauthorized: Invalid client ID', {
-                style: { background: '#F44', color: 'white' },
+                // style: { background: '#F44', color: 'white' },
               });
             } else if (error.response?.data?.error.includes('Invalid client')) {
               toast.error('Profile role mismatch: Expected "client" role', {
-                style: { background: '#F44', color: 'white' },
+                // style: { background: '#F44', color: 'white' },
               });
             }
           } else {
             toast.error('An error occurred while fetching dashboard data', {
-              style: { background: '#F44', color: 'white' },
+              // style: { background: '#F44', color: 'white' },
             });
           }
-          if (error.response?.status === 401 || error.response?.status === 404) {
-            localStorage.removeItem('token');
-            navigate('/login');
-          }
+          // if (error.response?.status === 401 || error.response?.status === 404) {
+          //   localStorage.removeItem('token');
+          //   navigate('/login');
+          // }
       }
     };
 
