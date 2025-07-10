@@ -7,20 +7,20 @@ const Intro = ({ closeModal }) => {
   const navigate = useNavigate();
 
   const sidebarItems = [
-    { name: 'Book a Ride', path: '/clientdashboard', description: 'Quickly book a ride to your destination' },
-    { name: 'Ride History', path: '/clientdashboard', description: 'View your past trips and details' },
-    { name: 'Hire a Driver', path: '/clientdashboard', description: 'Get a professional driver for your trip' },
-    { name: 'Rent a Car', path: '/clientdashboard', description: 'Rent a vehicle for your needs' },
-    { name: 'Have a Trip Schedule', path: '/clientdashboard', description: 'Plan your trips in advance' },
-    { name: 'Airport Pick Up/Drop Off', path: '/clientdashboard', description: 'Book airport transfers' },
-    { name: 'Send a Delivery', path: '/clientdashboard', description: 'Send packages with ease' },
-    { name: 'Ride Along', path: '/clientdashboard', description: 'Share a ride with others' },
+    { name: 'Book a Ride', tab: 'Book', description: 'Quickly book a ride to your destination' },
+    { name: 'Ride History', tab: 'History', description: 'View your past trips and details' },
+    { name: 'Hire a Driver', tab: 'hireadriver', description: 'Get a professional driver for your trip' },
+    { name: 'Rent a Car', tab: 'rent-vehicle', description: 'Rent a vehicle for your needs' },
+    { name: 'Have a Trip Schedule', tab: 'Schedule', description: 'Plan your trips in advance' },
+    { name: 'Airport Pick Up/Drop Off', tab: 'airport', description: 'Book airport transfers' },
+    { name: 'Send a Delivery', tab: 'Erranders', description: 'Send packages with ease' },
+    { name: 'Ride Along', tab: 'Ride-Along', description: 'Share a ride with others' },
   ];
 
-  const handleNavigation = (path) => {
+  const handleNavigation = (tab) => {
     try {
       closeModal(); // Close the modal before navigating
-      navigate(path);
+      navigate(`/clientdashboard?tab=${tab}`);
     } catch (error) {
       console.error('Navigation failed:', error);
     }
@@ -69,7 +69,7 @@ const Intro = ({ closeModal }) => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.2, duration: 0.5 }}
               whileHover={{ scale: 1.05 }}
-              onClick={() => handleNavigation(item.path)}
+              onClick={() => handleNavigation(item.tab)}
               className="bg-white p-6 rounded-lg shadow-md border border-blue-200 hover:bg-gray-50 cursor-pointer flex flex-col items-center justify-center text-center transition-colors duration-300"
             >
               <h3 className="text-lg font-semibold text-green-600 mb-2">{item.name}</h3>

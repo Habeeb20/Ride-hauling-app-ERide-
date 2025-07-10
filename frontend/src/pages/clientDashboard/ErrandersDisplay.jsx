@@ -15,7 +15,7 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
   const [lgaFilter, setLgaFilter] = useState('');
   const [states, setStates] = useState([]);
   const [lgas, setLgas] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false); // Changed to false
   const [selectedErrander, setSelectedErrander] = useState(null);
   const [bookingForm, setBookingForm] = useState({
     pickupAddress: '',
@@ -27,7 +27,7 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
   const [formLoading, setFormLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
 
-  // Nigerian states and LGAs (simplified, replace with API if needed)
+  // Nigerian states and LGAs
   const nigeriaData = {
     Lagos: ['Ikeja', 'Lagos Island', 'Surulere'],
     Abuja: ['Abuja Municipal', 'Gwagwalada'],
@@ -53,36 +53,57 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
     const fetchErranders = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('https://e-erandapi.emedicals.ng/api/auth/erranders', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/erranders`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        // Adjust based on API response structure
-        const errandersData = Array.isArray(response.data) ? response.data : response.data?.data || [];
-        setErranders(errandersData);
-        setFilteredErranders(errandersData);
+
+        // Robust response handling
+        let errandersData = response.data;
+        if (!Array.isArray(errandersData)) {
+          errandersData = errandersData?.data || errandersData?.erranders || [];
+        }
+
+        // Validate errander objects
+        const validErranders = errandersData.filter(
+          (errander) => errander && typeof errander === 'object' && errander._id
+        );
+
+        setErranders(validErranders);
+        setFilteredErranders(validErranders);
         setLoading(false);
       } catch (err) {
-        setError('Failed to fetch erranders');
+        console.error('Fetch erranders error:', err);
+        const errorMsg = err.response?.data?.message || 'Failed to fetch erranders';
+        setError(errorMsg);
         setLoading(false);
-        toast.error('Error fetching erranders');
+        toast.error(errorMsg);
       }
     };
     fetchErranders();
   }, []);
 
-  // Filter erranders by state and LGA
+  // Filter erranders
   useEffect(() => {
     let filtered = erranders;
     if (stateFilter) {
-      filtered = filtered.filter((errander) => errander.state.toLowerCase() === stateFilter.toLowerCase());
+      filtered = filtered.filter((errander) =>
+        errander.state?.toLowerCase() === stateFilter.toLowerCase()
+      );
     }
     if (lgaFilter) {
-      filtered = filtered.filter((errander) => errander.LGA.toLowerCase() === lgaFilter.toLowerCase());
+      filtered = filtered.filter((errander) =>
+        errander.LGA?.toLowerCase() === lgaFilter.toLowerCase()
+      );
     }
     setFilteredErranders(filtered);
   }, [stateFilter, lgaFilter, erranders]);
 
-  // Handle booking form changes
+  // Handle form changes
   const handleFormChange = (e) => {
     const { name, value, files } = e.target;
     setBookingForm((prev) => ({
@@ -91,7 +112,7 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
     }));
   };
 
-  // Validate booking form
+  // Validate form
   const validateForm = () => {
     const errors = {};
     if (!bookingForm.pickupAddress.trim()) errors.pickupAddress = 'Pickup address is required';
@@ -102,9 +123,9 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  });
+  };
 
-  // Handle Cloudinary image upload
+  // Cloudinary upload
   const uploadImage = async (file) => {
     if (!file) return null;
     const formData = new FormData();
@@ -114,7 +135,7 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
     try {
       const response = await axios.post(
         `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
-        formData,
+        formData
       );
       return response.data.secure_url;
     } catch (err) {
@@ -123,7 +144,7 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
     }
   };
 
-  // Handle booking submission
+  // Submit booking
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) {
@@ -131,11 +152,20 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
       return;
     }
 
+    if (!selectedErrander?._id) {
+      toast.error('No errander selected');
+      return;
+    }
+
     setFormLoading(true);
 
-    const imageUrl = await uploadImage(bookingForm.itemPicture);
-
     try {
+      const imageUrl = await uploadImage(bookingForm.itemPicture);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/bookings`,
         {
@@ -147,7 +177,7 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
           offeredPrice: parseFloat(bookingForm.offeredPrice),
         },
         {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
@@ -161,6 +191,7 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
         offeredPrice: '',
       });
       setFormErrors({});
+      setSelectedErrander(null);
     } catch (err) {
       const errorMsg = err.response?.data?.message || 'Failed to submit booking';
       toast.error(errorMsg);
@@ -186,6 +217,12 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
     return (
       <div className={`text-center p-6 ${isDarkTheme ? 'text-red-400' : 'text-red-500'}`}>
         <p>{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-6 py-2 bg-[#4CAF50] text-white rounded-md hover:bg-green-600"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -194,7 +231,6 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
     <div className={`p-6 max-w-6xl mx-auto ${isDarkTheme ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800'}`}>
       <h1 className="text-3xl font-bold text-center mb-6">Available Erranders</h1>
 
-      {/* Search Filters */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="flex-1">
           <label className="block font-medium mb-1">State</label>
@@ -233,7 +269,6 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
         </div>
       </div>
 
-      {/* Erranders List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredErranders.length === 0 ? (
           <p className="text-center text-gray-600 col-span-full">No erranders found</p>
@@ -247,30 +282,34 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
             >
               <img
                 src={errander.profilePicture || 'https://via.placeholder.com/150'}
-                alt={errander.userEmail}
+                alt={errander.userEmail || 'Errander'}
                 className="w-32 h-32 rounded-full mx-auto mb-4"
               />
               <h2 className="text-xl font-semibold text-center">
-                {errander.userId?.firstName || errander.userEmail}
+                {errander.userId?.firstName || errander.userEmail || 'Unknown'}
               </h2>
-              <p className="text-center">{errander.state}, {errander.LGA}</p>
+              <p className="text-center">{errander.state || 'N/A'}, {errander.LGA || 'N/A'}</p>
               <p className="text-center">Phone: {errander.phoneNumber || 'N/A'}</p>
               <p className="text-center">Jobs: {errander.jobsCanDo?.join(', ') || 'N/A'}</p>
               <div className="flex justify-center gap-4 mt-4">
-                <a
-                  href={`https://wa.me/${errander.phoneNumber}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                >
-                  <FaWhatsapp className="mr-2" /> WhatsApp
-                </a>
-                <a
-                  href={`tel:${errander.phoneNumber}`}
-                  className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                >
-                  <FaPhone className="mr-2" /> Call
-                </a>
+                {errander.phoneNumber && (
+                  <>
+                    <a
+                      href={`https://wa.me/${errander.phoneNumber}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                    >
+                      <FaWhatsapp className="mr-2" /> WhatsApp
+                    </a>
+                    <a
+                      href={`tel:${errander.phoneNumber}`}
+                      className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    >
+                      <FaPhone className="mr-2" /> Call
+                    </a>
+                  </>
+                )}
                 <button
                   onClick={() => openBookingModal(errander)}
                   className="flex items-center px-4 py-2 bg-[#4CAF50] text-white rounded-lg hover:bg-green-600"
@@ -283,10 +322,12 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
         )}
       </div>
 
-      {/* Booking Modal */}
       <Modal
         isOpen={isModalOpen}
-        onRequestClose={() => setIsModalOpen(false)}
+        onRequestClose={() => {
+          setIsModalOpen(false);
+          setSelectedErrander(null);
+        }}
         className={`p-6 rounded-lg shadow-xl max-w-lg mx-auto mt-20 ${
           isDarkTheme ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'
         }`}
@@ -403,7 +444,10 @@ const ErrandersDisplay = ({ isDarkTheme }) => {
           </button>
         </form>
         <button
-          onClick={() => setIsModalOpen(false)}
+          onClick={() => {
+            setIsModalOpen(false);
+            setSelectedErrander(null);
+          }}
           className={`mt-4 w-full p-3 border rounded-lg ${
             isDarkTheme ? 'border-gray-600 hover:bg-gray-600' : 'border-gray-300 hover:bg-gray-100'
           }`}
